@@ -61,4 +61,3 @@ In future, we will develop on (possibly variates of) development branches,
 and only merge release versions into the master branch.
 
 Issues and pull requests for fixing bugs are welcome. However, adding new language features will not be considered, because that's students' work!
-# Compiler-PA1-A
