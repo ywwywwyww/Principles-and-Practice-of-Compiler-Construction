@@ -25,6 +25,10 @@ public interface Visitor<C> {
     default void visitMethodDef(Tree.MethodDef that, C ctx) {
         visitOthers(that, ctx);
     }
+    
+    default void visitLambdaDef(Tree.LambdaDef that, C ctx) {
+    	visitOthers(that, ctx);
+    }
 
     default void visitTInt(Tree.TInt that, C ctx) {
         visitOthers(that, ctx);

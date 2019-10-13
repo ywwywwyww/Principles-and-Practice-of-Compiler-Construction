@@ -12,7 +12,7 @@ import java.util.Optional;
  */
 public abstract class Tree {
     public enum Kind {
-        TOP_LEVEL, CLASS_DEF, VAR_DEF, METHOD_DEF,
+        TOP_LEVEL, CLASS_DEF, VAR_DEF, METHOD_DEF, LAMBDA_DEF,
         T_INT, T_BOOL, T_STRING, T_VOID, T_CLASS, T_ARRAY, T_LAMBDA,
         LOCAL_VAR_DEF, BLOCK, ASSIGN, EXPR_EVAL, SKIP, IF, WHILE, FOR, BREAK, RETURN, PRINT,
         INT_LIT, BOOL_LIT, STRING_LIT, NULL_LIT, VAR_SEL, INDEX_SEL, CALL,
@@ -225,6 +225,54 @@ public abstract class Tree {
             v.visitMethodDef(this, ctx);
         }
     }
+    
+    public static class LambdaDef extends Expr {
+    	// Tree elements
+    	public List<LocalVarDef> params;
+    	public int type;
+    	// type == 1 : expr
+    	// type == 2 (default) : block
+    	public Expr expr;
+    	public Block block;
+    	
+    	public LambdaDef(int type, List<LocalVarDef> params, Expr expr, Block block, Pos pos) {
+    		super(Kind.LAMBDA_DEF, "Lambda", pos);
+    		this.type = type;
+    		this.params = params;
+    		this.expr = expr;
+    		this.block = block;
+    	}
+    	
+    	public LambdaDef(List<LocalVarDef> params, Expr expr, Pos pos) {
+    		this(1, params, expr, null, pos);
+    	}
+    	
+    	public LambdaDef(List<LocalVarDef> params, Block block, Pos pos) {
+    		this(2, params, null, block, pos);
+    	}
+    	
+        @Override
+        public Object treeElementAt(int index) {
+            return switch (index) {
+            	case 0 -> params;
+            	case 1 -> switch (type) {
+            		case 1 -> expr;
+            		default -> block;
+            	};
+            	default -> throw new IndexOutOfBoundsException(index);
+        };
+        }
+
+        @Override
+        public int treeArity() {
+            return 2;
+        }
+
+        @Override
+        public <C> void accept(Visitor<C> v, C ctx) {
+            v.visitLambdaDef(this, ctx);
+        }
+    }
 
     /**
      * Type.
@@ -411,8 +459,8 @@ public abstract class Tree {
     	public TypeLit returnType;
     	public List<TypeLit> params;
     	
-    	public TLambda(TypeLit returnType, List<TypeLit> parms, Pos pos) {
-    		super(Kind.T_LAMBDA, "TLAMBDA", pos);
+    	public TLambda(TypeLit returnType, List<TypeLit> params, Pos pos) {
+    		super(Kind.T_LAMBDA, "TLambda", pos);
     		this.returnType = returnType;
     		this.params = params;
     	}

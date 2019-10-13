@@ -15,16 +15,18 @@ import java.util.Optional;
 %get token
 %semantic SemValue : semValue
 
-%token VOID         BOOL        INT         STRING      CLASS		VARTYPE
+%token VOID         BOOL        INT         STRING      CLASS		VARTYPE 	
 %token NULL         EXTENDS     THIS        WHILE       FOR
 %token IF           ELSE        RETURN      BREAK       NEW
 %token PRINT        READ_INTEGER            READ_LINE
 %token BOOL_LIT     INT_LIT     STRING_LIT
 %token IDENTIFIER   AND         OR          STATIC      INSTANCE_OF ABSTRACT
 %token LESS_EQUAL   GREATER_EQUAL           EQUAL       NOT_EQUAL
+%token RIGHTARROW	LAMBDA
 %token '+'  '-'  '*'  '/'  '%'  '='  '>'  '<'  '.'
 %token ','  ';'  '!'  '('  ')'  '['  ']'  '{'  '}'
 
+%nonassoc RIGHTARROW
 %left OR
 %left AND
 %nonassoc EQUAL NOT_EQUAL
@@ -172,7 +174,7 @@ Type            :   INT
                     }
                 |	Type '(' TypeList ')'
                 	{
-                		$$ = svType(new TLambda($1.type, $3.typeList, $2.pos));
+                		$$ = svType(new TLambda($1.type, $3.typeList, $1.pos));
                 	}
                 ;
 
@@ -195,6 +197,7 @@ TypeList1		:	TypeList1 ',' Type
 					{
 						$$ = svTypes($1.type);
 					}
+				;
 						
 
 // Statements
@@ -415,6 +418,14 @@ Expr            :   Literal
                     {
                         $$ = svExpr(new ClassCast($5.expr, $3.id, $5.expr.pos));
                     }
+                |	LAMBDA '(' VarList ')' RIGHTARROW Expr
+                	{
+                		$$ = svExpr(new LambdaDef($3.varList, $6.expr, $1.pos));
+                	}
+               	|	LAMBDA '(' VarList ')' Block
+               		{
+               			$$ = svExpr(new LambdaDef($3.varList, $5.block, $1.pos));
+               		}
                 ;
 
 Literal         :   INT_LIT
