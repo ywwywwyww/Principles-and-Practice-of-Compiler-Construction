@@ -49,6 +49,10 @@ public interface Visitor<C> {
     default void visitTArray(Tree.TArray that, C ctx) {
         visitOthers(that, ctx);
     }
+    
+    default void visitTLambda(Tree.TLambda that, C ctx) {
+    	visitOthers(that, ctx);
+    }
 
     default void visitLocalVarDef(Tree.LocalVarDef that, C ctx) {
         visitOthers(that, ctx);

@@ -13,7 +13,7 @@ import java.util.Optional;
 public abstract class Tree {
     public enum Kind {
         TOP_LEVEL, CLASS_DEF, VAR_DEF, METHOD_DEF,
-        T_INT, T_BOOL, T_STRING, T_VOID, T_CLASS, T_ARRAY,
+        T_INT, T_BOOL, T_STRING, T_VOID, T_CLASS, T_ARRAY, T_LAMBDA,
         LOCAL_VAR_DEF, BLOCK, ASSIGN, EXPR_EVAL, SKIP, IF, WHILE, FOR, BREAK, RETURN, PRINT,
         INT_LIT, BOOL_LIT, STRING_LIT, NULL_LIT, VAR_SEL, INDEX_SEL, CALL,
         THIS, UNARY_EXPR, BINARY_EXPR, READ_INT, READ_LINE, NEW_CLASS, NEW_ARRAY, CLASS_TEST, CLASS_CAST
@@ -404,6 +404,37 @@ public abstract class Tree {
         public <C> void accept(Visitor<C> v, C ctx) {
             v.visitTArray(this, ctx);
         }
+    }
+    
+    public static class TLambda extends TypeLit {
+    	// Tree element
+    	public TypeLit returnType;
+    	public List<TypeLit> params;
+    	
+    	public TLambda(TypeLit returnType, List<TypeLit> parms, Pos pos) {
+    		super(Kind.T_LAMBDA, "TLAMBDA", pos);
+    		this.returnType = returnType;
+    		this.params = params;
+    	}
+    	
+    	@Override
+    	public Object treeElementAt(int index) {
+    		return switch (index) {
+    			case 0 -> returnType;
+    			case 1 -> params;
+                default -> throw new IndexOutOfBoundsException(index);
+    		};
+    	}
+    	
+    	@Override
+    	public int treeArity() {
+    		return 2;
+    	}
+    	
+    	@Override
+    	public <C> void accept(Visitor<C> v, C ctx) {
+    		v.visitTLambda(this, ctx);
+    	}
     }
 
 
@@ -1445,26 +1476,13 @@ public abstract class Tree {
      */
     public static class Call extends Expr {
         // Tree elements
-        public Optional<Expr> receiver;
-        public Id method;
+        public Expr method;
         public List<Expr> args;
-        //
-        public String methodName;
 
-        public Call(Optional<Expr> receiver, Id method, List<Expr> args, Pos pos) {
+        public Call(Expr method, List<Expr> args, Pos pos) {
             super(Kind.CALL, "Call", pos);
-            this.receiver = receiver;
             this.method = method;
             this.args = args;
-            this.methodName = method.name;
-        }
-
-        public Call(Id method, List<Expr> args, Pos pos) {
-            this(Optional.empty(), method, args, pos);
-        }
-
-        public Call(Expr receiver, Id method, List<Expr> args, Pos pos) {
-            this(Optional.of(receiver), method, args, pos);
         }
 
         /**
@@ -1472,23 +1490,19 @@ public abstract class Tree {
          * <p>
          * Reversed for type check.
          */
-        public void setThis() {
-            this.receiver = Optional.of(new This(pos));
-        }
 
         @Override
         public Object treeElementAt(int index) {
             return switch (index) {
-                case 0 -> receiver;
-                case 1 -> method;
-                case 2 -> args;
+                case 0 -> method;
+                case 1 -> args;
                 default -> throw new IndexOutOfBoundsException(index);
             };
         }
 
         @Override
         public int treeArity() {
-            return 3;
+            return 2;
         }
 
         @Override
