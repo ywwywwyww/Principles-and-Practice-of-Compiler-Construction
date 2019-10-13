@@ -15,7 +15,7 @@ import java.util.Optional;
 %get token
 %semantic SemValue : semValue
 
-%token VOID         BOOL        INT         STRING      CLASS
+%token VOID         BOOL        INT         STRING      CLASS		VARTYPE
 %token NULL         EXTENDS     THIS        WHILE       FOR
 %token IF           ELSE        RETURN      BREAK       NEW
 %token PRINT        READ_INTEGER            READ_LINE
@@ -136,11 +136,11 @@ VarList         :   VarList1
 VarList1        :   VarList1 ',' Var
                     {
                         $$ = $1;
-                        $$.varList.add(new LocalVarDef($3.type, $3.id, $3.pos));
+                        $$.varList.add(new LocalVarDef(Optional.of($3.type), $3.id, $3.pos));
                     }
                 |   Var
                     {
-                        $$ = svVars(new LocalVarDef($1.type, $1.id, $1.pos));
+                        $$ = svVars(new LocalVarDef(Optional.of($1.type), $1.id, $1.pos));
                     }
                 ;
 
@@ -233,7 +233,7 @@ StmtList        :   StmtList Stmt
 
 SimpleStmt      :   Var Initializer
                     {
-                        $$ = svStmt(new LocalVarDef($1.type, $1.id, $2.pos, Optional.ofNullable($2.expr), $1.pos));
+                        $$ = svStmt(new LocalVarDef(Optional.of($1.type), $1.id, $2.pos, Optional.ofNullable($2.expr), $1.pos));
                     }
                 |   LValue '=' Expr
                     {
@@ -243,6 +243,10 @@ SimpleStmt      :   Var Initializer
                     {
                         $$ = svStmt(new ExprEval($1.expr, $1.expr.pos));
                     }
+                |	VARTYPE Id '=' Expr
+                	{
+                		$$ = svStmt(new LocalVarDef(Optional.empty(), $2.id, $3.pos, Optional.of($4.expr), $2.pos));
+                	}
                 |   /* empty */
                     {
                         $$ = svStmt(null);
