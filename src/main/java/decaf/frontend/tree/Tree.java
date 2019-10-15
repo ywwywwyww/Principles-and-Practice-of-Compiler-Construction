@@ -1524,12 +1524,12 @@ public abstract class Tree {
      */
     public static class Call extends Expr {
         // Tree elements
-        public Expr method;
+        public Expr expr;
         public List<Expr> args;
 
-        public Call(Expr method, List<Expr> args, Pos pos) {
+        public Call(Expr expr, List<Expr> args, Pos pos) {
             super(Kind.CALL, "Call", pos);
-            this.method = method;
+            this.expr = expr;
             this.args = args;
         }
 
@@ -1542,7 +1542,7 @@ public abstract class Tree {
         @Override
         public Object treeElementAt(int index) {
             return switch (index) {
-                case 0 -> method;
+                case 0 -> expr;
                 case 1 -> args;
                 default -> throw new IndexOutOfBoundsException(index);
             };

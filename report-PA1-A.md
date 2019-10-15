@@ -18,7 +18,7 @@
 
 　　添加了 var 关键词。
 
-　　把 LocalVarDef 类中的 typeLit 成员变量的类型由 TypeLit 改成了 Optional<TypeLit>。用 null 来表示未确定的类型。
+　　把 LocalVarDef 类中的 typeLit 成员变量的类型由 TypeLit 改成了 Optional\<TypeLit\>。用 null 来表示未确定的类型。
 
 ### 函数类型
 
@@ -40,7 +40,7 @@
 
 　　修改了 Call 类以支持函数类型。
 
-　　Call 类只包含两个成员变量，method 表示函数，args 表示参数。
+　　Call 类只包含两个成员变量，expr 表示调用的表达式，args 表示参数。
 
 ## 遇到的问题
 
@@ -50,4 +50,22 @@
 
 ### Q1
 
-　　A 表示一个实际的类型（例如二元运算、lambda 表达式），B 表示一个抽象的类型（例如表达式），很多时候我们只需要知道某一个节点的抽象的类型就可以构建 AST，而不用知道这个节点具体是在做什么。
+　　A 表示一个实际的类型（例如二元运算、lambda 表达式）；B 表示一个抽象的类型（例如表达式），包含了各种 A 类型。
+
+### Q2
+
+　　框架中给 ELSE 和 empty 设置了不同的优先级，ELSE 的优先级更高，所以在遇到移进/规约冲突的时候，会优先移进，即每个 ELSE 子句会与最近的 IF 匹配。
+
+### Q3
+
+　　实际的框架中直接用 jacc 在单词流上进行分析构建出了抽象语法树。具体语法树是在分析时被隐式构造出来的，并在分析中被转换成了抽象语法树。
+
+## 参考资料
+
+　　戴言同学告诉了我可以用 modifier 实现 abstract，具体的方法和细节时我自己思考的。
+
+　　参考了一些文档
+
+　　　通过加入优先级避免移进/规约冲突：https://www.gnu.org/software/bison/manual/html_node/Non-Operators.html#Non-Operators 
+
+　　　Optional\<T\> 介绍：https://segmentfault.com/a/1190000008692522 
