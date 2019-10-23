@@ -229,35 +229,39 @@ public abstract class Tree {
     public static class LambdaDef extends Expr {
     	// Tree elements
     	public List<LocalVarDef> params;
-    	public int type;
-    	// type == 1 : expr
-    	// type == 2 (default) : block
+    	
+
+        public enum Kind {
+        	EXPR, BLOCK
+        }
+        
+    	public final Kind kind;
     	public Expr expr;
     	public Block block;
     	
-    	public LambdaDef(int type, List<LocalVarDef> params, Expr expr, Block block, Pos pos) {
-    		super(Kind.LAMBDA_DEF, "Lambda", pos);
-    		this.type = type;
+    	public LambdaDef(LambdaDef.Kind kind, List<LocalVarDef> params, Expr expr, Block block, Pos pos) {
+    		super(Tree.Kind.LAMBDA_DEF, "Lambda", pos);
+    		this.kind = kind;
     		this.params = params;
     		this.expr = expr;
     		this.block = block;
     	}
     	
     	public LambdaDef(List<LocalVarDef> params, Expr expr, Pos pos) {
-    		this(1, params, expr, null, pos);
+    		this(LambdaDef.Kind.EXPR, params, expr, null, pos);
     	}
     	
     	public LambdaDef(List<LocalVarDef> params, Block block, Pos pos) {
-    		this(2, params, null, block, pos);
+    		this(LambdaDef.Kind.BLOCK, params, null, block, pos);
     	}
     	
         @Override
         public Object treeElementAt(int index) {
             return switch (index) {
             	case 0 -> params;
-            	case 1 -> switch (type) {
-            		case 1 -> expr;
-            		default -> block;
+            	case 1 -> switch (kind) {
+            		case EXPR -> expr;
+            		case BLOCK -> block;
             	};
             	default -> throw new IndexOutOfBoundsException(index);
         };
@@ -1611,11 +1615,11 @@ public abstract class Tree {
         }
 
         public boolean isStatic() {
-            return (code & 1) == 1;
+            return (code & STATIC) == STATIC;
         }
         
         public boolean isAbstract() {
-        	return (code & 2) == 2;
+        	return (code & ABSTRACT) == ABSTRACT;
         }
 
         @Override
