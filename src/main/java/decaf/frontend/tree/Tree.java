@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.io.PrintStream;
 
 /**
  * All kinds of tree node in the abstract syntax tree.
@@ -28,6 +29,7 @@ public abstract class Tree {
 
         public TopLevel(List<ClassDef> classes, Pos pos) {
             super(Kind.TOP_LEVEL, "TopLevel", pos);
+//            printErrors("TopLevel\n");
             this.classes = classes;
         }
 
@@ -58,14 +60,16 @@ public abstract class Tree {
      */
     public static class ClassDef extends TreeNode {
         // Tree elements
+        public Modifiers modifiers;
         public final Id id;
         public Optional<Id> parent;
         public final List<Field> fields;
         // For convenience
         public final String name;
 
-        public ClassDef(Id id, Optional<Id> parent, List<Field> fields, Pos pos) {
+        public ClassDef(boolean isAbstract, Id id, Optional<Id> parent, List<Field> fields, Pos pos) {
             super(Kind.CLASS_DEF, "ClassDef", pos);
+            this.modifiers = isAbstract? new Modifiers(Modifiers.ABSTRACT, pos) : new Modifiers();
             this.id = id;
             this.parent = parent;
             this.fields = fields;
@@ -75,6 +79,12 @@ public abstract class Tree {
         public boolean hasParent() {
             return parent.isPresent();
         }
+        
+
+        public boolean isAbstract() {
+        	return modifiers.isAbstract();
+        }
+
 
         public List<MethodDef> methods() {
             var methods = new ArrayList<MethodDef>();
@@ -89,16 +99,17 @@ public abstract class Tree {
         @Override
         public Object treeElementAt(int index) {
             return switch (index) {
-                case 0 -> id;
-                case 1 -> parent;
-                case 2 -> fields;
+            	case 0 -> modifiers;
+                case 1 -> id;
+                case 2 -> parent;
+                case 3 -> fields;
                 default -> throw new IndexOutOfBoundsException(index);
             };
         }
 
         @Override
         public int treeArity() {
-            return 3;
+            return 4;
         }
 
         @Override
@@ -173,13 +184,14 @@ public abstract class Tree {
         public Id id;
         public TypeLit returnType;
         public List<LocalVarDef> params;
-        public Block body;
+        public Optional<Block> body;
         // For convenience
         public String name;
 
-        public MethodDef(boolean isStatic, Id id, TypeLit returnType, List<LocalVarDef> params, Block body, Pos pos) {
+        public MethodDef(boolean isAbstract, boolean isStatic, Id id, TypeLit returnType, List<LocalVarDef> params, Optional<Block> body, Pos pos) {
             super(Kind.METHOD_DEF, "MethodDef", pos);
-            this.modifiers = isStatic ? new Modifiers(Modifiers.STATIC, pos) : new Modifiers();
+//        	System.err.printf("MethodDef %s\n", isAbstract? "ABSTRACT" : isStatic? "STATIC" : "NONE");
+            this.modifiers = isAbstract ? new Modifiers(Modifiers.ABSTRACT, pos) : (isStatic ? new Modifiers(Modifiers.STATIC, pos) : new Modifiers());
             this.id = id;
             this.returnType = returnType;
             this.params = params;
@@ -189,6 +201,10 @@ public abstract class Tree {
 
         public boolean isStatic() {
             return modifiers.isStatic();
+        }
+        
+        public boolean isAbstract() {
+        	return modifiers.isAbstract();
         }
 
         @Override
@@ -1521,12 +1537,14 @@ public abstract class Tree {
 
         // Available modifiers:
         public static final int STATIC = 1;
+        public static final int ABSTRACT = 2;
 
         public Modifiers(int code, Pos pos) {
             this.code = code;
             this.pos = pos;
             flags = new ArrayList<>();
             if (isStatic()) flags.add("STATIC");
+            if (isAbstract()) flags.add("ABSTRACT");
         }
 
         public Modifiers() {
@@ -1534,7 +1552,11 @@ public abstract class Tree {
         }
 
         public boolean isStatic() {
-            return (code & 1) == 1;
+            return (code & STATIC) == STATIC;
+        }
+        
+        public boolean isAbstract() {
+        	return (code & ABSTRACT) == ABSTRACT;
         }
 
         @Override

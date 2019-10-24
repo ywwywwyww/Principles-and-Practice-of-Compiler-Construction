@@ -100,6 +100,10 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
                 case Tokens.GREATER_EQUAL -> GREATER_EQUAL;
                 case Tokens.EQUAL -> EQUAL;
                 case Tokens.NOT_EQUAL -> NOT_EQUAL;
+                case Tokens.ABSTRACT -> ABSTRACT;
+                case Tokens.VARTYPE -> VARTYPE;
+                case Tokens.LAMBDA -> LAMBDA;
+                case Tokens.RIGHTARROW -> RIGHTARROW;
                 default -> code; // single-character, use their ASCII code!
             };
         }
@@ -114,13 +118,22 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
          * @return the parsed value of {@code symbol} if parsing succeeds, or else {@code null}.
          */
         private SemValue parseSymbol(int symbol, Set<Integer> follow) {
+        	var step = "0";
+        	try
+        	{
+        	step = "1";
             var result = query(symbol, token); // get production by lookahead symbol
+    		step = "2";
             var actionId = result.getKey(); // get user-defined action
+    		step = "3";
 
             var right = result.getValue(); // right-hand side of production
+    		step = "4";
             var length = right.size();
+    		step = "5";
             var params = new SemValue[length + 1];
-
+    		step = "6";
+            
             for (var i = 0; i < length; i++) { // parse right-hand side symbols one by one
                 var term = right.get(i);
                 params[i + 1] = isNonTerminal(term)
@@ -128,9 +141,16 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
                         : matchToken(term) // for terminals: match token
                 ;
             }
+            step = "7";
 
             act(actionId, params); // do user-defined action
             return params[0];
+        	}
+            catch (Exception e)
+            {
+//            	yyerror("syntax error" + step);
+            }
+        	return null;
         }
 
         /**

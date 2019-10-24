@@ -18,6 +18,7 @@ PRINT        READ_INTEGER            READ_LINE
 BOOL_LIT     INT_LIT     STRING_LIT
 IDENTIFIER   AND         OR          STATIC      INSTANCE_OF
 LESS_EQUAL   GREATER_EQUAL           EQUAL       NOT_EQUAL
+VARTYPE      RIGHTARROW  LAMBDA      ABSTRACT
 '+'  '-'  '*'  '/'  '%'  '='  '>'  '<'  '.'
 ','  ';'  '!'  '('  ')'  '['  ']'  '{'  '}'
 
@@ -45,8 +46,12 @@ ClassList       :   ClassDef ClassList
 
 ClassDef        :   CLASS Id ExtendsClause '{' FieldList '}'
                     {
-                        $$ = svClass(new ClassDef($2.id, Optional.ofNullable($3.id), $5.fieldList, $1.pos));
+                        $$ = svClass(new ClassDef(false, $2.id, Optional.ofNullable($3.id), $5.fieldList, $1.pos));
                     }
+                |	ABSTRACT CLASS Id ExtendsClause '{' FieldList '}'
+                	{
+                		$$ = svClass(new ClassDef(true, $3.id, Optional.ofNullable($4.id), $6.fieldList, $2.pos));
+                	}
                 ;
 
 ExtendsClause   :   EXTENDS Id
@@ -62,13 +67,18 @@ ExtendsClause   :   EXTENDS Id
 FieldList       :   STATIC Type Id '(' VarList ')' Block FieldList
                     {
                         $$ = $8;
-                        $$.fieldList.add(0, new MethodDef(true, $3.id, $2.type, $5.varList, $7.block, $3.pos));
+                        $$.fieldList.add(0, new MethodDef(false, true, $3.id, $2.type, $5.varList, Optional.of($7.block), $3.pos));
                     }
+                |   ABSTRACT Type Id '(' VarList ')' ';' FieldList
+                	{
+                        $$ = $8;
+                		$$.fieldList.add(0, new MethodDef(true, false, $3.id, $2.type, $5.varList, Optional.empty(), $3.pos));
+                	}
                 |   Type Id AfterIdField FieldList
                     {
                         $$ = $4;
                         if ($3.varList != null) {
-                            $$.fieldList.add(0, new MethodDef(false, $2.id, $1.type, $3.varList, $3.block, $2.pos));
+                            $$.fieldList.add(0, new MethodDef(false, false, $2.id, $1.type, $3.varList, Optional.of($3.block), $2.pos));
                         } else {
                             $$.fieldList.add(0, new VarDef($1.type, $2.id, $2.pos));
                         }
