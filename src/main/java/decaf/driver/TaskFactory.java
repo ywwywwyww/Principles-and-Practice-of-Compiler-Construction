@@ -1,6 +1,6 @@
 package decaf.driver;
 
-import decaf.frontend.parsing.JaccParser;
+import decaf.frontend.parsing.LLParser;
 import decaf.frontend.tree.Tree;
 
 import java.io.InputStream;
@@ -15,7 +15,7 @@ public class TaskFactory {
         this.config = config;
     }
 
-    public Task<InputStream, Tree.TopLevel> parse() {
-        return new JaccParser(config);
+    public Task<InputStream, Tree.TopLevel> parseLL() {
+        return new LLParser(config);
     }
 }

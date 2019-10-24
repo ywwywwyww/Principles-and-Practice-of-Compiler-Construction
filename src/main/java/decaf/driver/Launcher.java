@@ -23,7 +23,7 @@ public class Launcher {
     public static void withConfig(Config config) {
         var tasks = new TaskFactory(config);
         var task = switch (config.target) {
-            case PA1 -> tasks.parse();
+            case PA1_LL -> tasks.parseLL();
             default -> throw new IllegalArgumentException("target not implemented");
         };
         task.apply(config.source);
