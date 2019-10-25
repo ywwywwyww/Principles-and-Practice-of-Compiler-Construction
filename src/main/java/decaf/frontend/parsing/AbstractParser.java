@@ -25,9 +25,9 @@ abstract class AbstractParser {
      */
     abstract boolean parse();
 
-    private AbstractLexer lexer;
+    protected AbstractLexer lexer;
 
-    private ErrorIssuer issuer;
+    protected ErrorIssuer issuer;
 
     /**
      * When parsing, we need to interact with the lexer to obtain the token.

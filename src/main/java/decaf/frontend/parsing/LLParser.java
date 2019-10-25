@@ -1,6 +1,7 @@
 package decaf.frontend.parsing;
 
 import decaf.driver.error.DecafError;
+import decaf.driver.error.MsgError;
 import decaf.driver.Config;
 import decaf.driver.Phase;
 import decaf.frontend.tree.Tree;
@@ -11,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.HashSet;
 
 /**
  * The alternative parser phase.
@@ -107,6 +109,11 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
                 default -> code; // single-character, use their ASCII code!
             };
         }
+        
+        private void syntaxError()
+        {
+        	issue(new MsgError(lexer.getPos(), "syntax error"));
+        }
 
         /**
          * Parse function for every non-terminal, with error recovery.
@@ -118,39 +125,53 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
          * @return the parsed value of {@code symbol} if parsing succeeds, or else {@code null}.
          */
         private SemValue parseSymbol(int symbol, Set<Integer> follow) {
-        	var step = "0";
-        	try
+//        	System.err.printf("parse symbol : at (%d, %d), %d %d\n",lexer.getPos().line, lexer.getPos().column, symbol, token);
+        	var begin = beginSet(symbol);
+        	Set<Integer> end = new HashSet<> ();
+        	end.addAll(follow);
+        	end.addAll(followSet(symbol));
+        	if(!begin.contains(token))
         	{
-        	step = "1";
+        		syntaxError();
+	        	while (!begin.contains(token) && !follow.contains(token))
+	        		token = nextToken();
+	        	if(!begin.contains(token))
+	        	{
+//	        		System.err.printf("recovery failed, next token : %d\n", token);
+	        		return null;
+	        	}
+//	    		System.err.printf("recovery success, next token : %d\n", token);
+        	}
+        	
             var result = query(symbol, token); // get production by lookahead symbol
-    		step = "2";
             var actionId = result.getKey(); // get user-defined action
-    		step = "3";
 
             var right = result.getValue(); // right-hand side of production
-    		step = "4";
             var length = right.size();
-    		step = "5";
             var params = new SemValue[length + 1];
-    		step = "6";
+            
+            boolean hasError = false;
             
             for (var i = 0; i < length; i++) { // parse right-hand side symbols one by one
                 var term = right.get(i);
                 params[i + 1] = isNonTerminal(term)
-                        ? parseSymbol(term, follow) // for non terminals: recursively parse it
+                        ? parseSymbol(term, end) // for non terminals: recursively parse it
                         : matchToken(term) // for terminals: match token
                 ;
+                if (params[i + 1] == null)
+                {
+//                	syntaxError();
+                	hasError = true;
+                }
             }
-            step = "7";
+            
+            if (hasError)
+            	return null;
+            
+//            System.err.printf("%d\n", symbol);
 
             act(actionId, params); // do user-defined action
             return params[0];
-        	}
-            catch (Exception e)
-            {
-//            	yyerror("syntax error" + step);
-            }
-        	return null;
         }
 
         /**
@@ -162,7 +183,7 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
         private SemValue matchToken(int expected) {
             SemValue self = semValue;
             if (token != expected) {
-                yyerror("syntax error");
+            	syntaxError();
                 return null;
             }
 
