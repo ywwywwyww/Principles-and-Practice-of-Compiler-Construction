@@ -110,7 +110,7 @@ Var             :   Type Id
 VarList         :   Var VarList1
                     {
                         $$ = $2;
-                        $$.varList.add(0, new LocalVarDef($1.type, $1.id, $1.pos));
+                        $$.varList.add(0, new LocalVarDef(Optional.of($1.type), $1.id, $1.pos));
                     }
                 |   /* empty */
                     {
@@ -121,7 +121,7 @@ VarList         :   Var VarList1
 VarList1        :   ',' Var VarList1
                     {
                         $$ = $3;
-                        $$.varList.add(0, new LocalVarDef($2.type, $2.id, $2.pos));
+                        $$.varList.add(0, new LocalVarDef(Optional.of($2.type), $2.id, $2.pos));
                     }
                 |   /* empty */
                     {
@@ -235,8 +235,12 @@ StmtList        :   Stmt StmtList
 
 SimpleStmt      :   Var Initializer
                     {
-                        $$ = svStmt(new LocalVarDef($1.type, $1.id, $2.pos, Optional.ofNullable($2.expr), $1.pos));
+                        $$ = svStmt(new LocalVarDef(Optional.of($1.type), $1.id, $2.pos, Optional.ofNullable($2.expr), $1.pos));
                     }
+                |	VARTYPE Id '=' Expr
+                	{
+                		$$ = svStmt(new LocalVarDef(Optional.empty(), $2.id, $3.pos, Optional.of($4.expr), $2.pos));
+                	}
                 |   Expr Initializer
                     {
                         if ($2.expr != null) {
