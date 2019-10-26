@@ -712,17 +712,6 @@ ExprT8          :   '[' Expr ']' ExprT8
                     }
                 ;
 
-ExprListOpt     :   '(' ExprList ')'
-                    {
-                        $$ = $2;
-                        $$.pos = $1.pos;
-                    }
-                |   /* empty */
-                    {
-                        $$ = new SemValue();
-                    }
-                ;
-
 Expr9           :   Literal
                     {
                         $$ = $1;
@@ -779,25 +768,45 @@ AfterNewExpr    :   Id '(' ')'
                     {
                         $$ = svId($1.id);
                     }
-                |   AtomType '[' AfterLBrack
+                |   AtomType AfterLBrack1
                     {
                         $$ = $1;
+                        /*
                         for (int i = 0; i < $3.intVal; i++) {
                             $$.type = new TArray($$.type, $1.pos);
                         }
-                        $$.expr = $3.expr;
+                        */
+                        for (int i = 0; i < $2.typesList.size(); i++)
+                            if($2.typesList.get(i).isPresent())
+                                $$.type = new TLambda($$.type, $2.typesList.get(i).get(), $1.pos);
+                            else
+                                $$.type = new TArray($$.type, $1.pos);
+                        $$.expr = $2.expr;
                     }
                 ;
 
-AfterLBrack     :   ']' '[' AfterLBrack
+AfterLBrack1   :   '[' AfterLBrack
                     {
-                        $$ = $3;
-                        $$.intVal++;
+                        $$ = $2;
+                    }
+                |   '(' TypeList ')' AfterLBrack1
+                    {
+                        $$ = $4;
+                        $4.typesList.add(0, Optional.of($2.typeList));
+                    }
+                ;
+
+AfterLBrack     :   ']' AfterLBrack1
+                    {
+                        $$ = $2;
+                        //$$.intVal++;
+                        $$.typesList.add(0, Optional.empty());
                     }
                 |   Expr ']'
                     {
                         $$ = svExpr($1.expr);
-                        $$.intVal = 0; // counter
+                        //$$.intVal = 0; // counter
+                        $$.typesList = new ArrayList<> ();
                     }
                 ;
 
