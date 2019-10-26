@@ -294,7 +294,7 @@ SimpleStmt      :   Var Initializer
                     {
                         $$ = svStmt(new LocalVarDef(Optional.of($1.type), $1.id, $2.pos, Optional.ofNullable($2.expr), $1.pos));
                     }
-                |    VARTYPE Id '=' Expr
+                |   VARTYPE Id '=' Expr
                     {
                         $$ = svStmt(new LocalVarDef(Optional.empty(), $2.id, $3.pos, Optional.of($4.expr), $2.pos));
                     }

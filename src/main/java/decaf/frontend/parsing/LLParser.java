@@ -124,8 +124,17 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
          * @param symbol the non-terminal to be parsed
          * @return the parsed value of {@code symbol} if parsing succeeds, or else {@code null}.
          */
+        int blank=0;
+        void gao()
+        {
+            for(int i = 0; i < blank; i++)
+                System.err.printf(" ");
+        }
         private SemValue parseSymbol(int symbol, Set<Integer> follow) {
+//            gao();
 //        	System.err.printf("parse symbol : at (%d, %d) , symbol = %s , token = %s\n",lexer.getPos().line, lexer.getPos().column, name(symbol), name(token));
+//        	if(followSet(symbol).contains(Integer.valueOf(')')))
+//        	    System.err.printf("                                                                )\n");
         	var begin = beginSet(symbol);
         	Set<Integer> end = new HashSet<> ();
         	end.addAll(follow);
@@ -137,10 +146,12 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
 	        		token = nextToken();
 	        	if(!begin.contains(token))
 	        	{
-//	        		System.err.printf("recovery failed, next token : %d\n", token);
+//                    gao();
+//	        		System.err.printf("recovery failed, next token : %s\n", name(token));
 	        		return null;
 	        	}
-//	    		System.err.printf("recovery success, next token : %d\n", token);
+//                gao();
+//	    		System.err.printf("recovery success, next token : %s\n", name(token));
         	}
         	
             var result = query(symbol, token); // get production by lookahead symbol
@@ -154,10 +165,12 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
             
             for (var i = 0; i < length; i++) { // parse right-hand side symbols one by one
                 var term = right.get(i);
+                blank++;
                 params[i + 1] = isNonTerminal(term)
                         ? parseSymbol(term, end) // for non terminals: recursively parse it
                         : matchToken(term) // for terminals: match token
                 ;
+                blank--;
                 if (params[i + 1] == null)
                 {
 //                	syntaxError();
@@ -166,11 +179,17 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
             }
             
             if (hasError)
+            {
+//                gao();
+//                System.err.printf("parse failed , at (%d, %d) , symbol = %s\n", lexer.getPos().line, lexer.getPos().column, name(symbol));
             	return null;
+            }
             
 //            System.err.printf("%d\n", symbol);
 
             act(actionId, params); // do user-defined action
+//            gao();
+//            System.err.printf("parse success , at (%d, %d) , symbol = %s\n", lexer.getPos().line, lexer.getPos().column, name(symbol));
             return params[0];
         }
 
