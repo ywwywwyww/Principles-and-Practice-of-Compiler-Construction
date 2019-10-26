@@ -52,6 +52,8 @@ class SemValue {
     String strVal;
     // empty typeList represents array
     List<Optional<List<Tree.TypeLit> > > typesList;
+    Tree.LambdaDef.Kind lambdaKind;
+    Pos idPos;
 
     /**
      * Create a semantic value for a lexer token, called by {@link AbstractLexer}.
