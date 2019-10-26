@@ -153,12 +153,43 @@ AtomType        :   INT
                     }
                 ;
 
-Type            :   AtomType ArrayType
+Type            :   Type1 Type2
+                    {
+                        $$ = $1;
+                        for (int i = 0; i < $2.typesList.size(); i++)
+                        	if($2.typesList.get(i).isPresent())
+	                        {
+	                            $$.type = new TLambda($$.type, $2.typesList.get(i).get(), $1.type.pos);
+	                        }
+	                        else
+	                        {
+	                        	$$.type = new TArray($$.type, $$.type.pos);
+	                        }
+                    }
+                ;
+
+Type1           :   AtomType ArrayType
                     {
                         $$ = $1;
                         for (int i = 0; i < $2.intVal; i++) {
                             $$.type = new TArray($$.type, $1.type.pos);
                         }
+                    }
+                ;
+
+Type2           :   '(' TypeList ')' ArrayType Type2
+                    {
+                		$$ = $5;
+                		for (int i = 0; i < $4.intVal; i++)
+                			$$.typesList.add(0, Optional.empty());
+                		$$.typesList.add(0, Optional.of($2.typeList));
+                		if($2.typeList==null)
+                			System.err.printf("null error1\n");
+                	}
+                |   /* empty */
+                    {
+                        $$ = new SemValue();
+                        $$.typesList = new ArrayList<>();
                     }
                 ;
 
@@ -173,6 +204,32 @@ ArrayType       :   '[' ']' ArrayType
                         $$.intVal = 0; // counter
                     }
                 ;
+                
+                
+TypeList		:	Type TypeList1
+					{
+						$$ = $2;
+						$$.typeList.add(0, $1.type);
+					}
+				|	/* empty */
+					{
+						$$ = new SemValue();
+						$$.typeList = new ArrayList<>();
+					}
+				;
+
+TypeList1		:	',' Type TypeList1 
+					{
+						$$ = $3;
+						$$.typeList.add(0, $2.type);
+					}
+				|	/* empty */
+					{
+						$$ = new SemValue();
+						$$.typeList = new ArrayList<>();
+					}
+				;
+						
 
 // Statements
 
@@ -568,7 +625,7 @@ AfterLParen     :   CLASS Id ')' Expr7
                             if (sv.expr != null) {
                                 $$ = svExpr(new IndexSel($$.expr, sv.expr, sv.pos));
                             } else if (sv.exprList != null) {
-                                $$ = svExpr(new Call($$.expr, sv.id, sv.exprList, sv.pos));
+                                $$ = svExpr(new Call(svExpr(new VarSel($$.expr, sv.id, sv.pos)).expr, sv.exprList, sv.pos));
                             } else {
                                 $$ = svExpr(new VarSel($$.expr, sv.id, sv.pos));
                             }
@@ -584,7 +641,7 @@ Expr8           :   Expr9 ExprT8
                             if (sv.expr != null) {
                                 $$ = svExpr(new IndexSel($$.expr, sv.expr, sv.pos));
                             } else if (sv.exprList != null) {
-                                $$ = svExpr(new Call($$.expr, sv.id, sv.exprList, sv.pos));
+                                $$ = svExpr(new Call(svExpr(new VarSel($$.expr, sv.id, sv.pos)).expr, sv.exprList, sv.pos));
                             } else {
                                 $$ = svExpr(new VarSel($$.expr, sv.id, sv.pos));
                             }
@@ -663,9 +720,12 @@ Expr9           :   Literal
                     }
                 |   Id ExprListOpt
                     {
-                        if ($2.exprList != null) {
-                            $$ = svExpr(new Call($1.id, $2.exprList, $2.pos));
-                        } else {
+                        if ($2.exprList != null) 
+                        {
+                            $$ = svExpr(new Call(svExpr(new VarSel($1.id, $1.pos)).expr, $2.exprList, $2.pos));
+                        } 
+                        else 
+                        {
                             $$ = svExpr(new VarSel($1.id, $1.pos));
                         }
                     }

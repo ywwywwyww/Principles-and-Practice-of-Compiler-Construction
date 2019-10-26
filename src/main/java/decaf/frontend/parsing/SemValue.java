@@ -5,6 +5,7 @@ import decaf.frontend.tree.Tree;
 import decaf.lowlevel.StringUtils;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A semantic value simply simulates a "union" (which we see, e.g. in C++), so that we can store ALL kinds of tree
@@ -49,6 +50,8 @@ class SemValue {
     int intVal;
     boolean boolVal;
     String strVal;
+    // empty typeList represents array
+    List<Optional<List<Tree.TypeLit> > > typesList;
 
     /**
      * Create a semantic value for a lexer token, called by {@link AbstractLexer}.

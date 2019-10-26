@@ -125,7 +125,7 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
          * @return the parsed value of {@code symbol} if parsing succeeds, or else {@code null}.
          */
         private SemValue parseSymbol(int symbol, Set<Integer> follow) {
-//        	System.err.printf("parse symbol : at (%d, %d), %d %d\n",lexer.getPos().line, lexer.getPos().column, symbol, token);
+//        	System.err.printf("parse symbol : at (%d, %d) , symbol = %s , token = %s\n",lexer.getPos().line, lexer.getPos().column, name(symbol), name(token));
         	var begin = beginSet(symbol);
         	Set<Integer> end = new HashSet<> ();
         	end.addAll(follow);
