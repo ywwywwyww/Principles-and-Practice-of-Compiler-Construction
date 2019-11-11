@@ -1,9 +1,8 @@
 package decaf.frontend.parsing;
 
-import decaf.driver.error.DecafError;
-import decaf.driver.error.MsgError;
 import decaf.driver.Config;
 import decaf.driver.Phase;
+import decaf.driver.error.DecafError;
 import decaf.frontend.tree.Tree;
 import decaf.lowlevel.log.IndentPrinter;
 import decaf.printing.PrettyTree;
@@ -12,7 +11,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.HashSet;
 
 /**
  * The alternative parser phase.
@@ -102,17 +100,8 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
                 case Tokens.GREATER_EQUAL -> GREATER_EQUAL;
                 case Tokens.EQUAL -> EQUAL;
                 case Tokens.NOT_EQUAL -> NOT_EQUAL;
-                case Tokens.ABSTRACT -> ABSTRACT;
-                case Tokens.VARTYPE -> VARTYPE;
-                case Tokens.LAMBDA -> LAMBDA;
-                case Tokens.RIGHTARROW -> RIGHTARROW;
                 default -> code; // single-character, use their ASCII code!
             };
-        }
-        
-        private void syntaxError()
-        {
-        	issue(new MsgError(lexer.getPos(), "syntax error"));
         }
 
         /**
@@ -124,72 +113,23 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
          * @param symbol the non-terminal to be parsed
          * @return the parsed value of {@code symbol} if parsing succeeds, or else {@code null}.
          */
-        int blank=0;
-        void gao()
-        {
-            for(int i = 0; i < blank; i++)
-                System.err.printf(" ");
-        }
         private SemValue parseSymbol(int symbol, Set<Integer> follow) {
-//            gao();
-//        	System.err.printf("parse symbol : at (%d, %d) , symbol = %s , token = %s\n",lexer.getPos().line, lexer.getPos().column, name(symbol), name(token));
-//        	if(followSet(symbol).contains(Integer.valueOf(')')))
-//        	    System.err.printf("                                                                )\n");
-        	var begin = beginSet(symbol);
-        	Set<Integer> end = new HashSet<> ();
-        	end.addAll(follow);
-        	end.addAll(followSet(symbol));
-        	if(!begin.contains(token))
-        	{
-        		syntaxError();
-	        	while (!begin.contains(token) && !follow.contains(token))
-	        		token = nextToken();
-	        	if(!begin.contains(token))
-	        	{
-//                    gao();
-//	        		System.err.printf("recovery failed, next token : %s\n", name(token));
-	        		return null;
-	        	}
-//                gao();
-//	    		System.err.printf("recovery success, next token : %s\n", name(token));
-        	}
-        	
             var result = query(symbol, token); // get production by lookahead symbol
             var actionId = result.getKey(); // get user-defined action
 
             var right = result.getValue(); // right-hand side of production
             var length = right.size();
             var params = new SemValue[length + 1];
-            
-            boolean hasError = false;
-            
+
             for (var i = 0; i < length; i++) { // parse right-hand side symbols one by one
                 var term = right.get(i);
-                blank++;
                 params[i + 1] = isNonTerminal(term)
-                        ? parseSymbol(term, end) // for non terminals: recursively parse it
+                        ? parseSymbol(term, follow) // for non terminals: recursively parse it
                         : matchToken(term) // for terminals: match token
                 ;
-                blank--;
-                if (params[i + 1] == null)
-                {
-//                	syntaxError();
-                	hasError = true;
-                }
             }
-            
-            if (hasError)
-            {
-//                gao();
-//                System.err.printf("parse failed , at (%d, %d) , symbol = %s\n", lexer.getPos().line, lexer.getPos().column, name(symbol));
-            	return null;
-            }
-            
-//            System.err.printf("%d\n", symbol);
 
             act(actionId, params); // do user-defined action
-//            gao();
-//            System.err.printf("parse success , at (%d, %d) , symbol = %s\n", lexer.getPos().line, lexer.getPos().column, name(symbol));
             return params[0];
         }
 
@@ -202,7 +142,7 @@ public class LLParser extends Phase<InputStream, Tree.TopLevel> {
         private SemValue matchToken(int expected) {
             SemValue self = semValue;
             if (token != expected) {
-            	syntaxError();
+                yyerror("syntax error");
                 return null;
             }
 

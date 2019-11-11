@@ -25,9 +25,9 @@ abstract class AbstractParser {
      */
     abstract boolean parse();
 
-    protected AbstractLexer lexer;
+    private AbstractLexer lexer;
 
-    protected ErrorIssuer issuer;
+    private ErrorIssuer issuer;
 
     /**
      * When parsing, we need to interact with the lexer to obtain the token.
@@ -139,13 +139,6 @@ abstract class AbstractParser {
         return v;
     }
 
-    protected SemValue svTypes(Tree.TypeLit... types) {
-    	var v = new SemValue(SemValue.Kind.TYPE_LIST, types.length == 0 ? Pos.NoPos : types[0].pos);
-    	v.typeList = new ArrayList<>();
-    	v.typeList.addAll(Arrays.asList(types));
-    	return v;
-    }
-
     protected SemValue svStmt(Tree.Stmt stmt) {
         var v = new SemValue(SemValue.Kind.STMT, stmt == null ? Pos.NoPos : stmt.pos);
         v.stmt = stmt;
@@ -209,12 +202,5 @@ abstract class AbstractParser {
      */
     protected void yyerror(String msg) {
         issuer.issue(new MsgError(lexer.getPos(), msg));
-    }
-    
-    protected <T> List<T> cloneList(List<T> a)
-    {
-    	List<T> b = new ArrayList<T>();
-    	b.addAll(a);
-    	return b;
     }
 }

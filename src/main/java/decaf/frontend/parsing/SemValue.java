@@ -5,7 +5,6 @@ import decaf.frontend.tree.Tree;
 import decaf.lowlevel.StringUtils;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * A semantic value simply simulates a "union" (which we see, e.g. in C++), so that we can store ALL kinds of tree
@@ -15,7 +14,7 @@ import java.util.Optional;
  */
 class SemValue {
     enum Kind {
-        TOKEN, CLASS, CLASS_LIST, FIELD, FIELD_LIST, VAR, VAR_LIST, TYPE, TYPE_LIST, STMT, STMT_LIST, BLOCK, EXPR, EXPR_LIST,
+        TOKEN, CLASS, CLASS_LIST, FIELD, FIELD_LIST, VAR, VAR_LIST, TYPE, STMT, STMT_LIST, BLOCK, EXPR, EXPR_LIST,
         LVALUE, ID, TEMPORARY
     }
 
@@ -50,10 +49,6 @@ class SemValue {
     int intVal;
     boolean boolVal;
     String strVal;
-    // empty typeList represents array
-    List<Optional<List<Tree.TypeLit> > > typesList;
-    Tree.LambdaDef.Kind lambdaKind;
-    Pos idPos;
 
     /**
      * Create a semantic value for a lexer token, called by {@link AbstractLexer}.
@@ -87,7 +82,6 @@ class SemValue {
     List<Tree.LocalVarDef> varList; // a list can only contain local vars
 
     Tree.TypeLit type;
-    List<Tree.TypeLit> typeList;
 
     Tree.Stmt stmt;
     List<Tree.Stmt> stmtList;
@@ -126,10 +120,6 @@ class SemValue {
                 case Tokens.VOID -> "keyword  : void";
                 case Tokens.WHILE -> "keyword  : while";
                 case Tokens.STATIC -> "keyword : static";
-                case Tokens.ABSTRACT -> "keyword : abstract";
-                case Tokens.VARTYPE -> "keyword : var";
-                case Tokens.LAMBDA -> "keyword : fun";
-                case Tokens.RIGHTARROW -> "operator : =>";
                 case Tokens.INT_LIT -> "int literal : " + intVal;
                 case Tokens.BOOL_LIT -> "bool literal : " + boolVal;
                 case Tokens.STRING_LIT -> "string literal : " + StringUtils.quote(strVal);
@@ -149,7 +139,6 @@ class SemValue {
             case VAR -> "VAR: " + type + " " + id;
             case VAR_LIST -> "VAR_LIST: " + varList;
             case TYPE -> "TYPE: " + type;
-            case TYPE_LIST -> "TYPE_LIST :" + type;
             case STMT -> "STMT: " + stmt;
             case STMT_LIST -> "STMT_LIST: " + stmtList;
             case BLOCK -> "BLOCK: " + block;
