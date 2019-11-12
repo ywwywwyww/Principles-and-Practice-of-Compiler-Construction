@@ -62,9 +62,11 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     @Override
     public void visitMethodDef(Tree.MethodDef method, ScopeStack ctx) {
         ctx.open(method.symbol.scope);
-        method.body.accept(this, ctx);
-        if (!method.symbol.type.returnType.isVoidType() && !method.body.returns) {
-            issue(new MissingReturnError(method.body.pos));
+        if (method.body.isPresent()) {
+            method.body.get().accept(this, ctx);
+            if (!method.symbol.type.returnType.isVoidType() && !method.body.get().returns) {
+                issue(new MissingReturnError(method.body.get().pos));
+            }
         }
         ctx.close();
     }
@@ -298,6 +300,9 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     public void visitNewClass(Tree.NewClass expr, ScopeStack ctx) {
         var clazz = ctx.lookupClass(expr.clazz.name);
         if (clazz.isPresent()) {
+            if (clazz.get().isAbstract()) {
+                issue(new InstantiateAbstractClassError(expr.pos, clazz.get().name));
+            }
             expr.symbol = clazz.get();
             expr.type = expr.symbol.type;
         } else {

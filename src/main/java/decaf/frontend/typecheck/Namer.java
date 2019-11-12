@@ -87,7 +87,7 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         //  static void main() { ... }
         boolean found = false;
         for (var clazz : classes.values()) {
-            if (clazz.name.equals("Main")) {
+            if (!clazz.isAbstract() && clazz.name.equals("Main")) {
                 var symbol = clazz.symbol.scope.find("main");
                 if (symbol.isPresent() && symbol.get().isMethodSymbol()) {
                     var method = (MethodSymbol) symbol.get();
@@ -158,13 +158,13 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             var base = global.getClass(clazz.parent.get().name);
             var type = new ClassType(clazz.name, base.type);
             var scope = new ClassScope(base.scope);
-            var symbol = new ClassSymbol(clazz.name, base, type, scope, clazz.pos);
+            var symbol = new ClassSymbol(clazz.name, base, type, scope, clazz.pos, clazz.modifiers);
             global.declare(symbol);
             clazz.symbol = symbol;
         } else {
             var type = new ClassType(clazz.name);
             var scope = new ClassScope();
-            var symbol = new ClassSymbol(clazz.name, type, scope, clazz.pos);
+            var symbol = new ClassSymbol(clazz.name, type, scope, clazz.pos, clazz.modifiers);
             global.declare(symbol);
             clazz.symbol = symbol;
         }
@@ -178,12 +178,20 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             clazz.superClass.accept(this, ctx);
         }
 
+        if (clazz.hasParent()) {
+            clazz.symbol.unoverridenAbstractMethod.addAll(clazz.superClass.symbol.unoverridenAbstractMethod);
+        }
+
         ctx.open(clazz.symbol.scope);
         for (var field : clazz.fields) {
             field.accept(this, ctx);
         }
         ctx.close();
         clazz.resolved = true;
+
+        if (!clazz.isAbstract() && !clazz.symbol.unoverridenAbstractMethod.isEmpty()) {
+            issue(new BadAbstractClassError(clazz.pos, clazz.name));
+        }
     }
 
     @Override
@@ -218,18 +226,20 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         if (earlier.isPresent()) {
             if (earlier.get().isMethodSymbol()) { // may be overriden
                 var suspect = (MethodSymbol) earlier.get();
-                if (suspect.domain() != ctx.currentScope() && !suspect.isStatic() && !method.isStatic()) {
+                if (suspect.domain() != ctx.currentScope() && !suspect.isStatic() && !method.isStatic() &&
+                        (suspect.isAbstract() || !method.isAbstract())) {
                     // Only non-static methods can be overriden, but the type signature must be equivalent.
                     var formal = new FormalScope();
                     typeMethod(method, ctx, formal);
                     if (method.type.subtypeOf(suspect.type)) { // override success
-                        var symbol = new MethodSymbol(method.name, method.type, formal, method.pos, method.modifiers,
-                                ctx.currentClass());
-                        ctx.declare(symbol);
-                        method.symbol = symbol;
-                        ctx.open(formal);
-                        method.body.accept(this, ctx);
-                        ctx.close();
+                        realVisitMethodDef(method, ctx, formal);
+//                        var symbol = new MethodSymbol(method.name, method.type, formal, method.pos, method.modifiers,
+//                                ctx.currentClass());
+//                        ctx.declare(symbol);
+//                        method.symbol = symbol;
+//                        ctx.open(formal);
+//                        method.body.accept(this, ctx);
+//                        ctx.close();
                     } else {
                         issue(new BadOverrideError(method.pos, method.name, suspect.owner.name));
                     }
@@ -244,12 +254,30 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
         var formal = new FormalScope();
         typeMethod(method, ctx, formal);
+        realVisitMethodDef(method, ctx, formal);
+//        var symbol = new MethodSymbol(method.name, method.type, formal, method.pos, method.modifiers,
+//                ctx.currentClass());
+//        ctx.declare(symbol);
+//        method.symbol = symbol;
+//        ctx.open(formal);
+//        method.body.accept(this, ctx);
+//        ctx.close();
+    }
+
+    private void realVisitMethodDef(Tree.MethodDef method, ScopeStack ctx, FormalScope formal)
+    {
+        var classSymbol = (ClassSymbol)ctx.currentClass();
+        if (method.isAbstract())
+            classSymbol.unoverridenAbstractMethod.add(method.name);
+        else
+            classSymbol.unoverridenAbstractMethod.remove(method.name);
+
         var symbol = new MethodSymbol(method.name, method.type, formal, method.pos, method.modifiers,
                 ctx.currentClass());
         ctx.declare(symbol);
         method.symbol = symbol;
         ctx.open(formal);
-        method.body.accept(this, ctx);
+        method.body.ifPresent(objects -> objects.accept(this, ctx));
         ctx.close();
     }
 
