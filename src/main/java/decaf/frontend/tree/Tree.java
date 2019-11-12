@@ -449,7 +449,7 @@ public abstract class Tree {
      */
     public static class LocalVarDef extends Stmt {
         // Tree elements
-        public TypeLit typeLit;
+        public Optional<TypeLit> typeLit;
         public Id id;
         public Pos assignPos;
         public Optional<Expr> initVal;
@@ -458,7 +458,7 @@ public abstract class Tree {
         // For type check
         public VarSymbol symbol;
 
-        public LocalVarDef(TypeLit typeLit, Id id, Pos assignPos, Optional<Expr> initVal, Pos pos) {
+        public LocalVarDef(Optional<TypeLit> typeLit, Id id, Pos assignPos, Optional<Expr> initVal, Pos pos) {
             // pos = id.pos, assignPos = position of the '='
             // TODO: looks not very consistent, maybe we shall always report error simply at `pos`, not `assignPos`?
             super(Kind.LOCAL_VAR_DEF, "LocalVarDef", pos);
@@ -469,7 +469,7 @@ public abstract class Tree {
             this.name = id.name;
         }
 
-        public LocalVarDef(TypeLit typeLit, Id id, Pos pos) {
+        public LocalVarDef(Optional<TypeLit> typeLit, Id id, Pos pos) {
             this(typeLit, id, Pos.NoPos, Optional.empty(), pos);
         }
 

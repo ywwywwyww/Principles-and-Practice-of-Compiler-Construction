@@ -45,6 +45,10 @@ public abstract class Type {
         return false;
     }
 
+    public boolean isVarType(){
+        return false;
+    }
+
     public boolean noError() {
         return true;
     }

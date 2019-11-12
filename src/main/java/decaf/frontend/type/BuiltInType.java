@@ -41,6 +41,8 @@ public final class BuiltInType extends Type {
      */
     public static final BuiltInType ERROR = new BuiltInType("Error");
 
+    public static final BuiltInType VAR = new BuiltInType("VAR");
+
     @Override
     public boolean subtypeOf(Type that) {
         if (eq(ERROR) || that.eq(ERROR)) {
@@ -70,6 +72,11 @@ public final class BuiltInType extends Type {
     @Override
     public boolean isVoidType() {
         return eq(VOID);
+    }
+
+    @Override
+    public boolean isVarType(){
+        return eq(VAR);
     }
 
     @Override

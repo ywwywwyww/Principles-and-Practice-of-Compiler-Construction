@@ -266,11 +266,11 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     private void realVisitMethodDef(Tree.MethodDef method, ScopeStack ctx, FormalScope formal)
     {
-        var classSymbol = (ClassSymbol)ctx.currentClass();
+        var currentClass = (ClassSymbol)ctx.currentClass();
         if (method.isAbstract())
-            classSymbol.unoverridenAbstractMethod.add(method.name);
+            currentClass.unoverridenAbstractMethod.add(method.name);
         else
-            classSymbol.unoverridenAbstractMethod.remove(method.name);
+            currentClass.unoverridenAbstractMethod.remove(method.name);
 
         var symbol = new MethodSymbol(method.name, method.type, formal, method.pos, method.modifiers,
                 ctx.currentClass());
@@ -288,7 +288,7 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         var argTypes = new ArrayList<Type>();
         for (var param : method.params) {
             param.accept(this, ctx);
-            argTypes.add(param.typeLit.type);
+            argTypes.add(param.typeLit.get().type);
         }
         method.type = new FunType(method.returnType.type, argTypes);
         ctx.close();
@@ -306,7 +306,7 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitLocalVarDef(Tree.LocalVarDef def, ScopeStack ctx) {
-        def.typeLit.accept(this, ctx);
+        def.typeLit.ifPresent(objects -> objects.accept(this, ctx));
 
         var earlier = ctx.findConflict(def.name);
         if (earlier.isPresent()) {
@@ -314,15 +314,25 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             return;
         }
 
-        if (def.typeLit.type.eq(BuiltInType.VOID)) {
+        if (def.typeLit.isPresent() && def.typeLit.get().type.eq(BuiltInType.VOID)) {
             issue(new BadVarTypeError(def.pos, def.name));
             return;
         }
 
-        if (def.typeLit.type.noError()) {
-            var symbol = new VarSymbol(def.name, def.typeLit.type, def.id.pos);
+        if (def.typeLit.isPresent()) {
+            if (def.typeLit.get().type.noError()) {
+                var symbol = new VarSymbol(def.name, def.typeLit.get().type, def.id.pos);
+                ctx.declare(symbol);
+                def.symbol = symbol;
+            }
+        }
+        else
+        {
+//            System.err.printf("Declare VAR variable\n");
+            var symbol = new VarSymbol(def.name, BuiltInType.VAR, def.id.pos);
             ctx.declare(symbol);
             def.symbol = symbol;
+//            System.err.println(ctx.lookup(symbol.name));
         }
     }
 

@@ -16,7 +16,10 @@ import decaf.frontend.type.Type;
 import decaf.lowlevel.log.IndentPrinter;
 import decaf.printing.PrettyScope;
 
+import javax.lang.model.type.ErrorType;
 import java.util.Optional;
+
+import static decaf.frontend.type.BuiltInType.ERROR;
 
 /**
  * The typer phase: type check abstract syntax tree and annotate nodes with inferred (and checked) types.
@@ -286,7 +289,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
         if (et.isVoidType()) {
             issue(new BadArrElementError(expr.elemType.pos));
-            expr.type = BuiltInType.ERROR;
+            expr.type = ERROR;
         } else {
             expr.type = new ArrayType(et);
         }
@@ -307,7 +310,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             expr.type = expr.symbol.type;
         } else {
             issue(new ClassNotFoundError(expr.pos, expr.clazz.name));
-            expr.type = BuiltInType.ERROR;
+            expr.type = ERROR;
         }
     }
 
@@ -332,6 +335,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                     var var = (VarSymbol) symbol.get();
                     expr.symbol = var;
                     expr.type = var.type;
+//                    System.err.printf("VarSel : name= %s , type= %s\n", var.name, var.type.toString());
                     if (var.isMemberVar()) {
                         if (ctx.currentMethod().isStatic()) {
                             issue(new RefNonStaticError(expr.pos, ctx.currentMethod().name, expr.name));
@@ -350,7 +354,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 }
             }
 
-            expr.type = BuiltInType.ERROR;
+            expr.type = ERROR;
             issue(new UndeclVarError(expr.pos, expr.name));
             return;
         }
@@ -361,7 +365,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         receiver.accept(this, ctx);
         allowClassNameVar = false;
         var rt = receiver.type;
-        expr.type = BuiltInType.ERROR;
+        expr.type = ERROR;
 
         if (receiver instanceof Tree.VarSel) {
             var v1 = (Tree.VarSel) receiver;
@@ -409,7 +413,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
         if (!at.isArrayType()) {
             issue(new NotArrayError(expr.array.pos));
-            expr.type = BuiltInType.ERROR;
+            expr.type = ERROR;
             return;
         }
 
@@ -421,7 +425,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitCall(Tree.Call expr, ScopeStack ctx) {
-        expr.type = BuiltInType.ERROR;
+        expr.type = ERROR;
         Type rt;
         boolean thisClass = false;
 
@@ -537,7 +541,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         var clazz = ctx.lookupClass(expr.to.name);
         if (clazz.isEmpty()) {
             issue(new ClassNotFoundError(expr.pos, expr.to.name));
-            expr.type = BuiltInType.ERROR;
+            expr.type = ERROR;
         } else {
             expr.symbol = clazz.get();
             expr.type = expr.symbol.type;
@@ -552,9 +556,26 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         localVarDefPos = Optional.ofNullable(stmt.id.pos);
         initVal.accept(this, ctx);
         localVarDefPos = Optional.empty();
+//        System.err.printf("----------------\n");
+//        System.err.printf("LocalVarDef : pos = ( %d , %d ) , name= %s , type= %s , initValType= %s\n", stmt.pos.line, stmt.pos.column, stmt.symbol.name, lt.toString(), rt.toString());
+        if (stmt.symbol.type.isVarType())
+        {
+//            System.err.println(stmt.symbol.type.toString());
+            stmt.symbol.type = initVal.type;
+            if (initVal.type.isVoidType())
+            {
+                issue(new BadVarTypeError(stmt.pos, stmt.name));
+                stmt.symbol.type = ERROR;
+            }
+            ctx.currentScope().redeclare(stmt.symbol);
+//            ctx.currentScope().declare(stmt.symbol);
+//            System.err.println(stmt.symbol.type.toString());
+//            System.err.println(ctx.lookup(stmt.symbol.name));
+        }
+//        System.err.printf("%d %d %s %s\n", stmt.pos.line, stmt.pos.column, lt.toString(), rt.toString());
+
         var lt = stmt.symbol.type;
         var rt = initVal.type;
-
         if (lt.noError() && (lt.isFuncType() || !rt.subtypeOf(lt))) {
             issue(new IncompatBinOpError(stmt.assignPos, lt.toString(), "=", rt.toString()));
         }

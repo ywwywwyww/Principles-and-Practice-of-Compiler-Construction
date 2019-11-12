@@ -188,7 +188,16 @@ public class ScopeStack {
      * @see Scope#declare
      */
     public void declare(Symbol symbol) {
+//        if (symbol.type.isVarType())
+//        {
+//            System.err.println("Declare VARTYPE Var in Scope");
+//        }
         currentScope().declare(symbol);
+    }
+
+    public void redeclare(Symbol symbol)
+    {
+        currentScope().redeclare(symbol);
     }
 
     private Stack<Scope> scopeStack = new Stack<>();
