@@ -83,7 +83,7 @@ public class Config {
         var source = new FileInputStream(sourceFile);
         var sourcePath = sourceFile.toPath();
 
-        var target = Target.PA5;
+        var target = Target.PA2;
         if (cli.hasOption(OptParser.TARGET)) {
             target = parseTarget(cli.getOptionValue(OptParser.TARGET));
         }

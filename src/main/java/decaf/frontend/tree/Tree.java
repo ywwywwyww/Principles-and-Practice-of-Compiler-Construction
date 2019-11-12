@@ -7,7 +7,6 @@ import decaf.frontend.symbol.MethodSymbol;
 import decaf.frontend.symbol.VarSymbol;
 import decaf.frontend.type.FunType;
 import decaf.frontend.type.Type;
-import decaf.lowlevel.instr.Temp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -878,8 +877,6 @@ public abstract class Tree {
     public abstract static class Expr extends TreeNode {
         // For type check
         public Type type;
-        // For tac gen
-        public Temp val;
 
         public Expr(Kind kind, String displayName, Pos pos) {
             super(kind, displayName, pos);

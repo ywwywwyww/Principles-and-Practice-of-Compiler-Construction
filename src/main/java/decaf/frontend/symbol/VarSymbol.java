@@ -4,7 +4,6 @@ import decaf.frontend.scope.ClassScope;
 import decaf.frontend.tree.Pos;
 import decaf.frontend.type.ClassType;
 import decaf.frontend.type.Type;
-import decaf.lowlevel.instr.Temp;
 
 /**
  * Variable symbol, representing a member (defined as a class member), param (defined as a functional parameter),
@@ -61,9 +60,4 @@ public final class VarSymbol extends Symbol {
         }
         return ((ClassScope) definedIn).getOwner();
     }
-
-    /**
-     * Temp, reserved for {@link decaf.frontend.tacgen.TacGen}.
-     */
-    public Temp temp;
 }
