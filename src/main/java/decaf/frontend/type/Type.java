@@ -1,5 +1,7 @@
 package decaf.frontend.type;
 
+import decaf.frontend.typecheck.Typer;
+
 /**
  * Type.
  * <p>
@@ -11,7 +13,7 @@ package decaf.frontend.type;
  *     <li>function types (cannot be expressed in programs, but we use them to type check function calls)</li>
  * </ol>
  * <p>
- * Types are resolved by {@link decaf.frontend.typecheck.Typer}.
+ * Types are resolved by {@link Typer}.
  *
  * @see BuiltInType
  * @see ClassType

@@ -4,6 +4,7 @@ import decaf.frontend.scope.GlobalScope;
 import decaf.frontend.scope.LocalScope;
 import decaf.frontend.symbol.ClassSymbol;
 import decaf.frontend.symbol.MethodSymbol;
+import decaf.frontend.symbol.Symbol;
 import decaf.frontend.symbol.VarSymbol;
 import decaf.frontend.type.FunType;
 import decaf.frontend.type.Type;
@@ -916,12 +917,17 @@ public abstract class Tree {
      * Expression.
      */
     public abstract static class Expr extends TreeNode {
+        // For convenience (name of callable method)
+        public String name;
         // For type check
         public Type type;
+        public boolean callable;
 
         public Expr(Kind kind, String displayName, Pos pos) {
             super(kind, displayName, pos);
+            this.callable = false;
         }
+
     }
 
     /**
@@ -1064,12 +1070,13 @@ public abstract class Tree {
         public Optional<Expr> receiver;
         public Id variable;
         // For convenience
-        public String name;
+//        public String name;
         // For type check
-        public VarSymbol symbol;
+        public Symbol symbol;
         public boolean isClassName = false;
 
         public VarSel(Optional<Expr> receiver, Id variable, Pos pos) {
+//            super(Kind.VAR_SEL, "VarSel", pos);
             super(Kind.VAR_SEL, "VarSel", pos);
             this.receiver = receiver;
             this.variable = variable;
@@ -1512,53 +1519,32 @@ public abstract class Tree {
      */
     public static class Call extends Expr {
         // Tree elements
-        public Optional<Expr> receiver;
-        public Id method;
+        public Expr expr;
         public List<Expr> args;
-        //
+        // For Convenience
         public String methodName;
         // For type check
-        public MethodSymbol symbol;
         public boolean isArrayLength = false;
 
-        public Call(Optional<Expr> receiver, Id method, List<Expr> args, Pos pos) {
+        public Call(Expr expr, List<Expr> args, Pos pos) {
             super(Kind.CALL, "Call", pos);
-            this.receiver = receiver;
-            this.method = method;
+            this.expr = expr;
             this.args = args;
-            this.methodName = method.name;
-        }
-
-        public Call(Id method, List<Expr> args, Pos pos) {
-            this(Optional.empty(), method, args, pos);
-        }
-
-        public Call(Expr receiver, Id method, List<Expr> args, Pos pos) {
-            this(Optional.of(receiver), method, args, pos);
-        }
-
-        /**
-         * Set its receiver as {@code this}.
-         * <p>
-         * Reversed for type check.
-         */
-        public void setThis() {
-            this.receiver = Optional.of(new This(pos));
+            this.methodName = expr.name;
         }
 
         @Override
         public Object treeElementAt(int index) {
             return switch (index) {
-                case 0 -> receiver;
-                case 1 -> method;
-                case 2 -> args;
+                case 0 -> expr;
+                case 1 -> args;
                 default -> throw new IndexOutOfBoundsException(index);
             };
         }
 
         @Override
         public int treeArity() {
-            return 3;
+            return 2;
         }
 
         @Override
