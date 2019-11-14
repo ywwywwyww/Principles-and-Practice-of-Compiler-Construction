@@ -2,11 +2,16 @@ package decaf.frontend.typecheck;
 
 import decaf.driver.ErrorIssuer;
 import decaf.driver.error.BadArrElementError;
+import decaf.driver.error.BadParamTypeError;
 import decaf.driver.error.ClassNotFoundError;
 import decaf.frontend.scope.ScopeStack;
 import decaf.frontend.tree.Tree;
 import decaf.frontend.tree.Visitor;
 import decaf.frontend.type.BuiltInType;
+import decaf.frontend.type.Type;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Infer the types of type literals in the abstract syntax tree.
@@ -57,6 +62,40 @@ public interface TypeLitVisited extends Visitor<ScopeStack>, ErrorIssuer {
             typeArray.type = BuiltInType.ERROR;
         } else {
             typeArray.type = new decaf.frontend.type.ArrayType(typeArray.elemType.type);
+        }
+    }
+
+    @Override
+    default void visitTLambda(Tree.TLambda typeLambda, ScopeStack ctx)
+    {
+        boolean hasError = false;
+        typeLambda.returnType.accept(this, ctx);
+        if (typeLambda.returnType.type.eq(BuiltInType.ERROR))
+        {
+            hasError = true;
+        }
+        List<Type> paramsType = new ArrayList<>();
+        for (var param : typeLambda.params)
+        {
+            param.accept(this, ctx);
+            if (param.type.eq(BuiltInType.ERROR))
+            {
+                hasError = true;
+            }
+            else if (param.type.eq(BuiltInType.VOID))
+            {
+                hasError = true;
+                issue(new BadParamTypeError(param.pos));
+            }
+            paramsType.add(param.type);
+        }
+        if (hasError)
+        {
+            typeLambda.type = BuiltInType.ERROR;
+        }
+        else
+        {
+            typeLambda.type = new decaf.frontend.type.FunType(typeLambda.returnType.type, paramsType);
         }
     }
 
