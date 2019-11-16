@@ -926,6 +926,7 @@ public abstract class Tree {
         public Expr(Kind kind, String displayName, Pos pos) {
             super(kind, displayName, pos);
             this.callable = false;
+            this.name = null; // corresponds lambda expression
         }
 
     }

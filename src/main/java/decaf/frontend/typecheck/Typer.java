@@ -506,6 +506,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 }
                 expr.symbol = method;
                 expr.type = method.type;
+                expr.name = method.name;
             } else {
                 issue(new NotClassMethodError(expr.pos, expr.name, clazz.type.toString()));
             }
@@ -539,7 +540,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
         call.expr.accept(this, ctx);
 
-        call.name = call.expr.name;
+        call.methodName = call.expr.name;
 
         if (!call.expr.type.noError())
         {
@@ -577,7 +578,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
         // check signature compatibility
         if (((FunType)call.expr.type).arity() != args.size()) {
-            issue(new BadArgCountError(call.pos, call.name, ((FunType)call.expr.type).arity(), args.size()));
+            issue(new BadArgCountError(call.pos, call.methodName, ((FunType)call.expr.type).arity(), args.size()));
         }
         var iter1 = ((FunType)call.expr.type).argTypes.iterator();
         var iter2 = call.args.iterator();
