@@ -72,9 +72,14 @@ public abstract class Scope implements Iterable<Symbol> {
         symbol.setDomain(this);
     }
 
-    public void redeclare(Symbol symbol)
+    public void undeclare(Symbol symbol)
     {
         symbols.remove(symbol.name);
+    }
+
+    public void redeclare(Symbol symbol)
+    {
+        undeclare(symbol);
         declare(symbol);
     }
 
@@ -105,8 +110,12 @@ public abstract class Scope implements Iterable<Symbol> {
         return false;
     }
 
-    public boolean isFormalOrLocalScope() {
-        return isFormalScope() || isLocalScope();
+    public boolean isLambdaScope() {
+        return false;
+    }
+
+    public boolean isFormalOrLocalScopeOrLambdaScope() {
+        return isFormalScope() || isLocalScope() || isLambdaScope();
     }
 
     protected Map<String, Symbol> symbols = new TreeMap<>();

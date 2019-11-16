@@ -67,7 +67,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         return pos + " -> " + str();
     }
 
-    Scope definedIn;
+    public Scope definedIn;
 
     /**
      * Two symbols are compared by their positions.
@@ -78,5 +78,9 @@ public abstract class Symbol implements Comparable<Symbol> {
     @Override
     public int compareTo(Symbol that) {
         return this.pos.compareTo(that.pos);
+    }
+
+    public boolean isMember() {
+        return false;
     }
 }

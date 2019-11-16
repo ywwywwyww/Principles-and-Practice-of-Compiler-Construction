@@ -41,7 +41,7 @@ public final class BuiltInType extends Type {
      */
     public static final BuiltInType ERROR = new BuiltInType("Error");
 
-    public static final BuiltInType VAR = new BuiltInType("VAR");
+    public static final BuiltInType VAR = new BuiltInType("var");
 
     @Override
     public boolean subtypeOf(Type that) {

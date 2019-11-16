@@ -9,7 +9,7 @@ import decaf.frontend.type.FunType;
 /**
  * Method symbol, representing a method definition.
  */
-public final class MethodSymbol extends Symbol {
+public class MethodSymbol extends Symbol {
 
     public final FunType type;
 
@@ -70,6 +70,11 @@ public final class MethodSymbol extends Symbol {
     }
 
     public boolean isAbstract() { return modifiers.isAbstract(); }
+
+    @Override
+    public boolean isMember() {
+        return definedIn.isClassScope();
+    }
 
     private boolean main = false;
 }

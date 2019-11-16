@@ -1,6 +1,7 @@
 package decaf.frontend.scope;
 
 import decaf.frontend.symbol.ClassSymbol;
+import decaf.frontend.symbol.LambdaSymbol;
 import decaf.frontend.symbol.MethodSymbol;
 import decaf.frontend.symbol.Symbol;
 import decaf.frontend.tree.Pos;
@@ -65,9 +66,20 @@ public class ScopeStack {
      *
      * @return method symbol
      */
-    public MethodSymbol currentMethod() {
-        Objects.requireNonNull(currMethod);
-        return currMethod;
+    public Symbol currentMethod() {
+        Objects.requireNonNull(currMethod.peek());
+        return currMethod.peek();
+    }
+
+    public MethodSymbol currentMemberMethod() {
+        Objects.requireNonNull(currMemberMethod);
+        return currMemberMethod;
+    }
+
+    public Optional<LambdaSymbol> currentLambda() {
+        if (currLambda.empty())
+            return Optional.empty();
+        return Optional.ofNullable(currLambda.peek());
     }
 
     /**
@@ -82,13 +94,18 @@ public class ScopeStack {
     public void open(Scope scope) {
         assert !scope.isGlobalScope();
         if (scope.isClassScope()) {
-            assert !currentScope().isFormalOrLocalScope();
+            assert !currentScope().isFormalOrLocalScopeOrLambdaScope();
             var classScope = (ClassScope) scope;
             classScope.parentScope.ifPresent(this::open);
             currClass = classScope.getOwner();
         } else if (scope.isFormalScope()) {
             var formalScope = (FormalScope) scope;
-            currMethod = formalScope.getOwner();
+            currMethod.push(formalScope.getOwner());
+            currMemberMethod = formalScope.getOwner();
+        } else if (scope.isLambdaScope()) {
+            var lambdaScope = (LambdaScope) scope;
+            currLambda.push(lambdaScope.getOwner());
+            currMethod.push(lambdaScope.getOwner());
         }
         scopeStack.push(scope);
     }
@@ -107,6 +124,12 @@ public class ScopeStack {
             while (!scopeStack.isEmpty()) {
                 scopeStack.pop();
             }
+        } else if(scope.isLambdaScope()) {
+            currLambda.pop();
+            currMethod.pop();
+        } else if(scope.isFormalScope()) {
+            currMethod.pop();
+            currMemberMethod = null;
         }
     }
 
@@ -146,8 +169,8 @@ public class ScopeStack {
      * @return innermost conflicting symbol (if any)
      */
     public Optional<Symbol> findConflict(String key) {
-        if (currentScope().isFormalOrLocalScope())
-            return findWhile(key, Scope::isFormalOrLocalScope, whatever -> true).or(() -> global.find(key));
+        if (currentScope().isFormalOrLocalScopeOrLambdaScope())
+            return findWhile(key, Scope::isFormalOrLocalScopeOrLambdaScope, whatever -> true).or(() -> global.find(key));
         return lookup(key);
     }
 
@@ -200,9 +223,16 @@ public class ScopeStack {
         currentScope().redeclare(symbol);
     }
 
+    public void undeclare(Symbol symbol)
+    {
+        currentScope().undeclare(symbol);
+    }
+
     private Stack<Scope> scopeStack = new Stack<>();
     private ClassSymbol currClass;
-    private MethodSymbol currMethod;
+    private MethodSymbol currMemberMethod;
+    private Stack<Symbol> currMethod = new Stack<>();
+    private Stack<LambdaSymbol> currLambda = new Stack<>();
 
     private Optional<Symbol> findWhile(String key, Predicate<Scope> cond, Predicate<Symbol> validator) {
         ListIterator<Scope> iter = scopeStack.listIterator(scopeStack.size());
@@ -210,6 +240,7 @@ public class ScopeStack {
             var scope = iter.previous();
             if (!cond.test(scope)) return Optional.empty();
             var symbol = scope.find(key);
+//            System.err.printf("%s\n", key);
             if (symbol.isPresent() && validator.test(symbol.get())) return symbol;
         }
         return cond.test(global) ? global.find(key) : Optional.empty();

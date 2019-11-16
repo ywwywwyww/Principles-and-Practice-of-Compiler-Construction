@@ -44,7 +44,8 @@ public final class VarSymbol extends Symbol {
         return definedIn.isFormalScope();
     }
 
-    public boolean isMemberVar() {
+    @Override
+    public boolean isMember() {
         return definedIn.isClassScope();
     }
 
@@ -55,7 +56,7 @@ public final class VarSymbol extends Symbol {
      * @throws IllegalArgumentException if this is not a member variable
      */
     public ClassSymbol getOwner() {
-        if (!isMemberVar()) {
+        if (!isMember()) {
             throw new IllegalArgumentException("this var symbol is not a member var");
         }
         return ((ClassScope) definedIn).getOwner();

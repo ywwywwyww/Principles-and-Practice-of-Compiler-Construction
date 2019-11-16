@@ -5,6 +5,7 @@ import decaf.driver.Phase;
 import decaf.driver.error.*;
 import decaf.frontend.scope.*;
 import decaf.frontend.symbol.ClassSymbol;
+import decaf.frontend.symbol.LambdaSymbol;
 import decaf.frontend.symbol.MethodSymbol;
 import decaf.frontend.symbol.VarSymbol;
 import decaf.frontend.tree.Tree;
@@ -198,6 +199,7 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     public void visitVarDef(Tree.VarDef varDef, ScopeStack ctx) {
         varDef.typeLit.accept(this, ctx);
 
+
         var earlier = ctx.findConflict(varDef.name);
         if (earlier.isPresent()) {
             if (earlier.get().isVarSymbol() && earlier.get().domain() != ctx.currentScope()) {
@@ -264,9 +266,8 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 //        ctx.close();
     }
 
-    private void realVisitMethodDef(Tree.MethodDef method, ScopeStack ctx, FormalScope formal)
-    {
-        var currentClass = (ClassSymbol)ctx.currentClass();
+    private void realVisitMethodDef(Tree.MethodDef method, ScopeStack ctx, FormalScope formal) {
+        var currentClass = (ClassSymbol) ctx.currentClass();
         if (method.isAbstract())
             currentClass.unoverridenAbstractMethod.add(method.name);
         else
@@ -308,32 +309,25 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     public void visitLocalVarDef(Tree.LocalVarDef def, ScopeStack ctx) {
         def.typeLit.ifPresent(objects -> objects.accept(this, ctx));
 
+
         var earlier = ctx.findConflict(def.name);
         if (earlier.isPresent()) {
             issue(new DeclConflictError(def.pos, def.name, earlier.get().pos));
-            return;
-        }
-
-        if (def.typeLit.isPresent() && def.typeLit.get().type.eq(BuiltInType.VOID)) {
+        } else if (def.typeLit.isPresent() && def.typeLit.get().type.eq(BuiltInType.VOID)) {
             issue(new BadVarTypeError(def.pos, def.name));
-            return;
-        }
-
-        if (def.typeLit.isPresent()) {
+        } else if (def.typeLit.isPresent()) {
             if (def.typeLit.get().type.noError()) {
                 var symbol = new VarSymbol(def.name, def.typeLit.get().type, def.id.pos);
                 ctx.declare(symbol);
                 def.symbol = symbol;
             }
-        }
-        else
-        {
-//            System.err.printf("Declare VAR variable\n");
+        } else {
             var symbol = new VarSymbol(def.name, BuiltInType.VAR, def.id.pos);
             ctx.declare(symbol);
             def.symbol = symbol;
-//            System.err.println(ctx.lookup(symbol.name));
         }
+
+        def.initVal.ifPresent(objects -> objects.accept(this, ctx));
     }
 
     @Override
@@ -341,6 +335,8 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         loop.scope = new LocalScope(ctx.currentScope());
         ctx.open(loop.scope);
         loop.init.accept(this, ctx);
+        loop.cond.accept(this, ctx);
+        loop.update.accept(this, ctx);
         for (var stmt : loop.body.stmts) {
             stmt.accept(this, ctx);
         }
@@ -349,13 +345,105 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitIf(Tree.If stmt, ScopeStack ctx) {
+        stmt.cond.accept(this, ctx);
         stmt.trueBranch.accept(this, ctx);
         stmt.falseBranch.ifPresent(b -> b.accept(this, ctx));
     }
 
     @Override
     public void visitWhile(Tree.While loop, ScopeStack ctx) {
+        loop.cond.accept(this, ctx);
         loop.body.accept(this, ctx);
+    }
+
+    @Override
+    public void visitReturn(Tree.Return stmt, ScopeStack ctx) {
+        stmt.expr.ifPresent(objects -> objects.accept(this, ctx));
+    }
+
+    @Override
+    public void visitAssign(Tree.Assign stmt, ScopeStack ctx) {
+        stmt.lhs.accept(this, ctx);
+        stmt.rhs.accept(this, ctx);
+    }
+
+    @Override
+    public void visitExprEval(Tree.ExprEval stmt, ScopeStack ctx) {
+        stmt.expr.accept(this, ctx);
+    }
+
+    @Override
+    public void visitPrint(Tree.Print stmt, ScopeStack ctx) {
+        for (var expr : stmt.exprs) {
+            expr.accept(this, ctx);
+        }
+    }
+
+    @Override
+    public void visitNewArray(Tree.NewArray expr, ScopeStack ctx) {
+        expr.elemType.accept(this, ctx);
+        expr.length.accept(this, ctx);
+    }
+
+    @Override
+    public void visitVarSel(Tree.VarSel expr, ScopeStack ctx) {
+        expr.receiver.ifPresent(Object -> Object.accept(this, ctx));
+    }
+
+    @Override
+    public void visitIndexSel(Tree.IndexSel expr, ScopeStack ctx) {
+        expr.array.accept(this, ctx);
+        expr.index.accept(this, ctx);
+    }
+
+    @Override
+    public void visitCall(Tree.Call call, ScopeStack ctx) {
+        call.expr.accept(this, ctx);
+        for (var arg : call.args)
+            arg.accept(this, ctx);
+    }
+
+    @Override
+    public void visitClassTest(Tree.ClassTest expr, ScopeStack ctx) {
+        expr.obj.accept(this, ctx);
+    }
+
+    @Override
+    public void visitClassCast(Tree.ClassCast expr, ScopeStack ctx) {
+        expr.obj.accept(this, ctx);
+    }
+
+    @Override
+    public void visitBinary(Tree.Binary expr, ScopeStack ctx) {
+        expr.lhs.accept(this, ctx);
+        expr.rhs.accept(this, ctx);
+    }
+
+    @Override
+    public void visitUnary(Tree.Unary expr, ScopeStack ctx) {
+        expr.operand.accept(this, ctx);
+    }
+
+    @Override
+    public void visitLambdaDef(Tree.LambdaDef lambda, ScopeStack ctx) {
+        var scope = new LambdaScope(ctx.currentScope());
+
+        var symbol = new LambdaSymbol(BuiltInType.VAR, scope, lambda.pos);
+        ctx.declare(symbol);
+        lambda.symbol = symbol;
+
+        ctx.open(scope);
+
+        for (var param : lambda.params) {
+            param.accept(this, ctx);
+        }
+        if (lambda.kind == Tree.LambdaDef.Kind.EXPR) {
+            lambda.expr.accept(this, ctx);
+        } else {
+            lambda.block.accept(this, ctx);
+        }
+
+        ctx.close();
     }
 
 }

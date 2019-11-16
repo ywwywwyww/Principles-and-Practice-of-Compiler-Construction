@@ -3,10 +3,10 @@ package decaf.frontend.typecheck;
 import decaf.driver.Config;
 import decaf.driver.Phase;
 import decaf.driver.error.*;
+import decaf.frontend.scope.LocalScope;
+import decaf.frontend.scope.Scope;
 import decaf.frontend.scope.ScopeStack;
-import decaf.frontend.symbol.ClassSymbol;
-import decaf.frontend.symbol.MethodSymbol;
-import decaf.frontend.symbol.VarSymbol;
+import decaf.frontend.symbol.*;
 import decaf.frontend.tree.Pos;
 import decaf.frontend.tree.Tree;
 import decaf.frontend.type.*;
@@ -94,10 +94,29 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     public void visitAssign(Tree.Assign stmt, ScopeStack ctx) {
         stmt.lhs.accept(this, ctx);
         stmt.rhs.accept(this, ctx);
+
         var lt = stmt.lhs.type;
         var rt = stmt.rhs.type;
 
-        if (lt.noError() && (lt.isFuncType() || !rt.subtypeOf(lt))) {
+        if (!lt.noError()) {
+            return;
+        }
+
+        if (stmt.lhs instanceof Tree.VarSel) {
+            var lhs = ((Tree.VarSel) stmt.lhs);
+            if (lhs.receiver.isEmpty() && lhs.symbol.isVarSymbol())
+            {
+                var symbol = (VarSymbol) lhs.symbol;
+                if (symbol.isLocalVar() || symbol.isParam()) {
+                    if (ctx.currentLambda().isPresent()) {
+                        if (ctx.lookupBefore(lhs.symbol.name, ctx.currentLambda().get().pos).isPresent())
+                            issue(new BadCaptureError(stmt.pos));
+                    }
+                }
+            }
+        }
+
+        if (lt.isFuncType() || !rt.subtypeOf(lt)) {
             issue(new IncompatBinOpError(stmt.pos, lt.toString(), "=", rt.toString()));
         }
     }
@@ -148,7 +167,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitReturn(Tree.Return stmt, ScopeStack ctx) {
-        var expected = ctx.currentMethod().type.returnType;
+        // TODO: return stmt in lambda expr
+        if (ctx.currentMethod().type.isVarType()) {
+            stmt.expr.ifPresent(e -> e.accept(this, ctx));
+            return;
+        }
+        var expected = ((FunType) ctx.currentMethod().type).returnType;
         stmt.expr.ifPresent(e -> e.accept(this, ctx));
         var actual = stmt.expr.map(e -> e.type).orElse(BuiltInType.VOID);
         if (actual.noError() && !actual.subtypeOf(expected)) {
@@ -314,7 +338,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitThis(Tree.This expr, ScopeStack ctx) {
-        if (ctx.currentMethod().isStatic()) {
+        if (ctx.currentMemberMethod().isStatic()) {
             issue(new ThisInStaticFuncError(expr.pos));
         }
         expr.type = ctx.currentClass().type;
@@ -326,8 +350,10 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     public void visitVarSel(Tree.VarSel expr, ScopeStack ctx) {
         boolean isMethod = false;
         expr.type = ERROR;
+
         if (expr.receiver.isEmpty()) {
-            var symbol = ctx.lookupBefore(expr.name, localVarDefPos.orElse(expr.pos));
+//            var symbol = ctx.lookupBefore(expr.name, localVarDefPos.orElse(expr.pos));
+            var symbol = ctx.lookupBefore(expr.name, expr.pos);
             if (symbol.isPresent()) {
                 if (symbol.get().isMethodSymbol())
                     isMethod = true;
@@ -415,15 +441,16 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             if (expr.receiver.isEmpty()) {
                 // Variable, which should be complicated since a legal variable could refer to a local var,
                 // a visible member var, and a class name.
-                var symbol = ctx.lookupBefore(expr.name, localVarDefPos.orElse(expr.pos));
+//                var symbol = ctx.lookupBefore(expr.name, localVarDefPos.orElse(expr.pos));
+                var symbol = ctx.lookupBefore(expr.name, expr.pos);
                 if (symbol.isPresent()) {
                     if (symbol.get().isVarSymbol()) {
                         var var = (VarSymbol) symbol.get();
                         expr.symbol = var;
                         expr.type = var.type;
-                        if (var.isMemberVar()) {
-                            if (ctx.currentMethod().isStatic()) {
-                                issue(new RefNonStaticError(expr.pos, ctx.currentMethod().name, expr.name));
+                        if (var.isMember()) {
+                            if (ctx.currentMemberMethod().isStatic()) {
+                                issue(new RefNonStaticError(expr.pos, ctx.currentMemberMethod().name, expr.name));
                             } else {
                                 expr.setThis();
                             }
@@ -470,7 +497,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             var field = ctx.getClass(ct.name).scope.lookup(expr.name);
             if (field.isPresent() && field.get().isVarSymbol()) {
                 var var = (VarSymbol) field.get();
-                if (var.isMemberVar()) {
+                if (var.isMember()) {
                     expr.symbol = var;
                     expr.type = var.type;
                     if (!ctx.currentClass().type.subtypeOf(var.getOwner().type)) {
@@ -500,10 +527,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 }
 
                 // Cannot call this's member methods in a static method
-                if (thisClass && ctx.currentMethod().isStatic() && !method.isStatic()) {
-                    issue(new RefNonStaticError(expr.pos, ctx.currentMethod().name, method.name));
-                    return;
+                if (thisClass && ctx.currentMemberMethod().isStatic() && !method.isStatic()) {
+                    issue(new RefNonStaticError(expr.pos, ctx.currentMemberMethod().name, method.name));
                 }
+
+
+
                 expr.symbol = method;
                 expr.type = method.type;
                 expr.name = method.name;
@@ -539,19 +568,17 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         call.type = ERROR;
 
         call.expr.accept(this, ctx);
-
-        call.methodName = call.expr.name;
-
         if (!call.expr.type.noError())
         {
             return;
         }
-
         if (!call.expr.type.isFuncType())
         {
             issue(new NotCallableTypeError(call.expr.type.toString(), call.pos));
             return;
         }
+
+        call.methodName = call.expr.name;
 
         // typing args
         var args = call.args;
@@ -570,11 +597,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 return;
             }
         }
-
-        // TODO: For LambdaDef
-
-
-
 
         // check signature compatibility
         if (((FunType)call.expr.type).arity() != args.size()) {
@@ -632,9 +654,11 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         if (stmt.initVal.isEmpty()) return;
 
         var initVal = stmt.initVal.get();
-        localVarDefPos = Optional.ofNullable(stmt.id.pos);
+//        localVarDefPos = Optional.ofNullable(stmt.id.pos);
+        ctx.undeclare(stmt.symbol);
         initVal.accept(this, ctx);
-        localVarDefPos = Optional.empty();
+        ctx.declare(stmt.symbol);
+//        localVarDefPos = Optional.empty();
         if (stmt.symbol.type.isVarType())
         {
             if (initVal.type.isVoidType())
@@ -644,7 +668,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 return;
             }
             stmt.symbol.type = initVal.type;
-            ctx.currentScope().redeclare(stmt.symbol);
+            ctx.redeclare(stmt.symbol);
         }
 
         var lt = stmt.symbol.type;
@@ -654,6 +678,20 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         }
     }
 
+    @Override
+    public void visitLambdaDef(Tree.LambdaDef lambda, ScopeStack ctx) {
+        lambda.type = ERROR;
+        ctx.open(lambda.symbol.scope);
+        for (var param : lambda.params)
+            param.accept(this, ctx);
+        if (lambda.kind == Tree.LambdaDef.Kind.EXPR) {
+            lambda.expr.accept(this, ctx);
+        } else {
+            lambda.block.accept(this, ctx);
+        }
+        ctx.close();
+    }
+
     // Only usage: check if an initializer cyclically refers to the declared variable, e.g. var x = x + 1
-    private Optional<Pos> localVarDefPos = Optional.empty();
+//    private Optional<Pos> localVarDefPos = Optional.empty();
 }
