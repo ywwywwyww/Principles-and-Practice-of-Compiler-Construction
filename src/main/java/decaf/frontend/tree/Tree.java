@@ -518,6 +518,8 @@ public abstract class Tree {
          * For type check: does this return a value?
          */
         public boolean returns = false;
+//        public List<Stmt> returnStmt;
+//        public List<Stmt>
 
         public boolean isBlock() {
             return false;
@@ -975,6 +977,11 @@ public abstract class Tree {
             super(kind, displayName, pos);
             this.callable = false;
             this.name = null; // corresponds lambda expression
+        }
+
+        // 这个表达式是否有名字
+        public boolean hasName() {
+            return name != null;
         }
 
     }

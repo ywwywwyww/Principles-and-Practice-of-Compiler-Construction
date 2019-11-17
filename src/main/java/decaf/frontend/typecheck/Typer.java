@@ -115,8 +115,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 }
             }
         }
-
-        if (lt.isFuncType() || !rt.subtypeOf(lt)) {
+        if(stmt.lhs instanceof Tree.VarSel) {
+            if (((Tree.VarSel) stmt.lhs).symbol.isMethodSymbol()) {
+                issue(new AssignMemberMethodError(stmt.pos, stmt.lhs.name));
+            }
+        }
+        if (!rt.subtypeOf(lt)) {
             issue(new IncompatBinOpError(stmt.pos, lt.toString(), "=", rt.toString()));
         }
     }
@@ -680,14 +684,15 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitLambdaDef(Tree.LambdaDef lambda, ScopeStack ctx) {
-        lambda.type = ERROR;
         ctx.open(lambda.symbol.scope);
         for (var param : lambda.params)
             param.accept(this, ctx);
         if (lambda.kind == Tree.LambdaDef.Kind.EXPR) {
             lambda.expr.accept(this, ctx);
+            lambda.type = lambda.expr.type;
         } else {
             lambda.block.accept(this, ctx);
+            lambda.type = ERROR;
         }
         ctx.close();
     }
