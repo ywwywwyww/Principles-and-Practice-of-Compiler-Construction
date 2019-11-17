@@ -458,6 +458,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 if (rt.isArrayType() && expr.name.equals("length")) { // Special case: array.length()
                     expr.type = new FunType(BuiltInType.INT, new ArrayList<>());
                     expr.name = "length";
+                    expr.isArrayLength = true;
                     return;
                 }
 
@@ -620,18 +621,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         var args = call.args;
         for (var arg : args) {
             arg.accept(this, ctx);
-        }
-
-        if (call.expr instanceof Tree.VarSel)
-        {
-            if (call.expr.type.isArrayType() && call.methodName.equals("length")) { // Special case: array.length()
-                if (!call.args.isEmpty()) {
-                    issue(new BadLengthArgError(call.expr.pos, call.args.size()));
-                }
-                call.isArrayLength = true;
-                call.type = BuiltInType.INT;
-                return;
-            }
         }
 
         // check signature compatibility

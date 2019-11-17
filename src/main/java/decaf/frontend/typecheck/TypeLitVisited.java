@@ -70,31 +70,24 @@ public interface TypeLitVisited extends Visitor<ScopeStack>, ErrorIssuer {
     {
         boolean hasError = false;
         typeLambda.returnType.accept(this, ctx);
-        if (typeLambda.returnType.type.eq(BuiltInType.ERROR))
-        {
+        if (typeLambda.returnType.type.eq(BuiltInType.ERROR)) {
             hasError = true;
         }
         List<Type> paramsType = new ArrayList<>();
-        for (var param : typeLambda.params)
-        {
+        for (var param : typeLambda.params) {
             param.accept(this, ctx);
-            if (param.type.eq(BuiltInType.ERROR))
-            {
+            if (param.type.eq(BuiltInType.ERROR)) {
                 hasError = true;
             }
-            else if (param.type.eq(BuiltInType.VOID))
-            {
+            else if (param.type.eq(BuiltInType.VOID)) {
                 hasError = true;
                 issue(new BadParamTypeError(param.pos));
             }
             paramsType.add(param.type);
         }
-        if (hasError)
-        {
+        if (hasError) {
             typeLambda.type = BuiltInType.ERROR;
-        }
-        else
-        {
+        } else {
             typeLambda.type = new decaf.frontend.type.FunType(typeLambda.returnType.type, paramsType);
         }
     }

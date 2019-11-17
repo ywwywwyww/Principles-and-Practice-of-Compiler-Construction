@@ -1149,6 +1149,7 @@ public abstract class Tree {
         // For type check
         public Symbol symbol;
         public boolean isClassName = false;
+        public boolean isArrayLength = false;
 
         public VarSel(Optional<Expr> receiver, Id variable, Pos pos) {
 //            super(Kind.VAR_SEL, "VarSel", pos);
@@ -1599,7 +1600,6 @@ public abstract class Tree {
         // For Convenience
         public String methodName;
         // For type check
-        public boolean isArrayLength = false;
 
         public Call(Expr expr, List<Expr> args, Pos pos) {
             super(Kind.CALL, "Call", pos);
