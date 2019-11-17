@@ -247,6 +247,10 @@ public abstract class Tree {
         public Expr expr;
         public Block block;
         // For type check
+        /**
+         * local scope for expr-lambda
+         */
+        public LocalScope exprScope;
         public LambdaSymbol symbol;
 
         public LambdaDef(LambdaDef.Kind kind, List<LocalVarDef> params, Expr expr, Block block, Pos pos) {
@@ -512,14 +516,29 @@ public abstract class Tree {
     public static abstract class Stmt extends TreeNode {
         public Stmt(Kind kind, String displayName, Pos pos) {
             super(kind, displayName, pos);
+            returnStmt = new ArrayList<>();
+            returnType = new ArrayList<>();
         }
 
         /**
          * For type check: does this return a value?
          */
         public boolean returns = false;
-//        public List<Stmt> returnStmt;
-//        public List<Stmt>
+
+        /**
+         * return stmts (maybe issue an error in lambda expr)
+         */
+        public List<Stmt> returnStmt;
+
+        /**
+         * return types (determine the return type of lambda expr)
+         */
+        public List<Type> returnType;
+
+//        /**
+//         * does this has any return stmt?
+//         */
+//        public boolean hasReturnStmt = false;
 
         public boolean isBlock() {
             return false;

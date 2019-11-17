@@ -438,7 +438,10 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             param.accept(this, ctx);
         }
         if (lambda.kind == Tree.LambdaDef.Kind.EXPR) {
+            lambda.exprScope = new LocalScope(ctx.currentScope());
+            ctx.open(lambda.exprScope);
             lambda.expr.accept(this, ctx);
+            ctx.close();
         } else {
             lambda.block.accept(this, ctx);
         }

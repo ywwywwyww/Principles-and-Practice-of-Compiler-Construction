@@ -15,9 +15,12 @@ import decaf.printing.PrettyScope;
 
 import javax.lang.model.type.ErrorType;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Stack;
 
 import static decaf.frontend.type.BuiltInType.ERROR;
+import static decaf.frontend.type.BuiltInType.VOID;
 
 /**
  * The typer phase: type check abstract syntax tree and annotate nodes with inferred (and checked) types.
@@ -62,6 +65,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitMethodDef(Tree.MethodDef method, ScopeStack ctx) {
+        loopLevel.push(0);
         ctx.open(method.symbol.scope);
         if (method.body.isPresent()) {
             method.body.get().accept(this, ctx);
@@ -70,6 +74,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             }
         }
         ctx.close();
+        loopLevel.pop();
     }
 
     /**
@@ -78,7 +83,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
      * <p>
      * Increase this counter when entering a loop, and decrease it when leaving a loop.
      */
-    private int loopLevel = 0;
+    private Stack<Integer> loopLevel = new Stack<>();
 
     @Override
     public void visitBlock(Tree.Block block, ScopeStack ctx) {
@@ -88,6 +93,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         }
         ctx.close();
         block.returns = !block.stmts.isEmpty() && block.stmts.get(block.stmts.size() - 1).returns;
+
+        for (var stmt : block.stmts) {
+            block.returnStmt.addAll(stmt.returnStmt);
+            block.returnType.addAll(stmt.returnType);
+        }
+//            block.missReturnStmt.addAll(block.stmts.get(block.stmts.size() - 1).missReturnStmt);
     }
 
     @Override
@@ -104,13 +115,15 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
         if (stmt.lhs instanceof Tree.VarSel) {
             var lhs = ((Tree.VarSel) stmt.lhs);
-            if (lhs.receiver.isEmpty() && lhs.symbol.isVarSymbol())
-            {
+            if (lhs.receiver.isEmpty() && lhs.symbol.isVarSymbol()) {
                 var symbol = (VarSymbol) lhs.symbol;
                 if (symbol.isLocalVar() || symbol.isParam()) {
                     if (ctx.currentLambda().isPresent()) {
-                        if (ctx.lookupBefore(lhs.symbol.name, ctx.currentLambda().get().pos).isPresent())
+                        if (ctx.lookupBeforeForLambda(lhs.symbol.name, ctx.currentLambda().get().pos).isPresent()) {
+//                            System.err.printf("%s\n", ctx.lookupBefore(lhs.symbol.name, ctx.currentLambda().get().pos));
+//                            System.err.printf("%s %s\n", stmt.pos, ctx.currentLambda().get().pos);
                             issue(new BadCaptureError(stmt.pos));
+                        }
                     }
                 }
             }
@@ -138,14 +151,25 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         stmt.falseBranch.ifPresent(b -> b.accept(this, ctx));
         // if-stmt returns a value iff both branches return
         stmt.returns = stmt.trueBranch.returns && stmt.falseBranch.isPresent() && stmt.falseBranch.get().returns;
+        stmt.returnStmt.addAll(stmt.trueBranch.returnStmt);
+        stmt.returnType.addAll(stmt.trueBranch.returnType);
+        if (stmt.falseBranch.isPresent()) {
+            stmt.returnStmt.addAll(stmt.falseBranch.get().returnStmt);
+            stmt.returnType.addAll(stmt.falseBranch.get().returnType);
+        }
+//        System.err.printf("if @ %s %s\n", stmt.pos, stmt.returnType);
+//            stmt.missReturnStmt.addAll(stmt.trueBranch.missReturnStmt);
+//            stmt.missReturnStmt.addAll(stmt.falseBranch.get().missReturnStmt);
     }
 
     @Override
     public void visitWhile(Tree.While loop, ScopeStack ctx) {
         checkTestExpr(loop.cond, ctx);
-        loopLevel++;
+        loopLevel.push(loopLevel.peek() + 1);
         loop.body.accept(this, ctx);
-        loopLevel--;
+        loopLevel.push(loopLevel.peek() - 1);
+        loop.returnStmt.addAll(loop.body.returnStmt);
+        loop.returnType.addAll(loop.body.returnType);
     }
 
     @Override
@@ -154,17 +178,25 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         loop.init.accept(this, ctx);
         checkTestExpr(loop.cond, ctx);
         loop.update.accept(this, ctx);
-        loopLevel++;
+        loopLevel.push(loopLevel.peek() + 1);
         for (var stmt : loop.body.stmts) {
             stmt.accept(this, ctx);
         }
-        loopLevel--;
+        loopLevel.push(loopLevel.peek() - 1);
         ctx.close();
+        loop.returnStmt.addAll(loop.init.returnStmt);
+        loop.returnType.addAll(loop.init.returnType);
+        loop.returnStmt.addAll(loop.update.returnStmt);
+        loop.returnType.addAll(loop.update.returnType);
+        for (var stmt : loop.body.stmts) {
+            loop.returnStmt.addAll(stmt.returnStmt);
+            loop.returnType.addAll(stmt.returnType);
+        }
     }
 
     @Override
     public void visitBreak(Tree.Break stmt, ScopeStack ctx) {
-        if (loopLevel == 0) {
+        if (loopLevel.peek() == 0) {
             issue(new BreakOutOfLoopError(stmt.pos));
         }
     }
@@ -174,15 +206,23 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         // TODO: return stmt in lambda expr
         if (ctx.currentMethod().type.isVarType()) {
             stmt.expr.ifPresent(e -> e.accept(this, ctx));
-            return;
+            var actual = stmt.expr.map(e -> e.type).orElse(BuiltInType.VOID);
+            stmt.returnStmt.add(stmt);
+            stmt.returnType.add(actual);
+            stmt.returns = stmt.expr.isPresent();
+//            stmt.missReturnStmt.clear();
+        } else {
+            var expected = ((FunType) ctx.currentMethod().type).returnType;
+            stmt.expr.ifPresent(e -> e.accept(this, ctx));
+            var actual = stmt.expr.map(e -> e.type).orElse(BuiltInType.VOID);
+            if (actual.noError() && !actual.subtypeOf(expected)) {
+                issue(new BadReturnTypeError(stmt.pos, expected.toString(), actual.toString()));
+            }
+            stmt.returns = stmt.expr.isPresent();
+            if (stmt.returns) {
+//                stmt.missReturnStmt.clear();
+            }
         }
-        var expected = ((FunType) ctx.currentMethod().type).returnType;
-        stmt.expr.ifPresent(e -> e.accept(this, ctx));
-        var actual = stmt.expr.map(e -> e.type).orElse(BuiltInType.VOID);
-        if (actual.noError() && !actual.subtypeOf(expected)) {
-            issue(new BadReturnTypeError(stmt.pos, expected.toString(), actual.toString()));
-        }
-        stmt.returns = stmt.expr.isPresent();
     }
 
     @Override
@@ -555,6 +595,11 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         var at = expr.array.type;
         var it = expr.index.type;
 
+        if (at.hasError()) {
+            expr.type = ERROR;
+            return;
+        }
+
         if (!at.isArrayType()) {
             issue(new NotArrayError(expr.array.pos));
             expr.type = ERROR;
@@ -684,19 +729,145 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitLambdaDef(Tree.LambdaDef lambda, ScopeStack ctx) {
+//        System.err.printf("visit lambda def @ %s\n", lambda.pos);
+        List<Type> argTypes = new ArrayList<>();
+        for (var param : lambda.params) {
+            argTypes.add(param.typeLit.get().type);
+        }
+        loopLevel.push(0);
         ctx.open(lambda.symbol.scope);
         for (var param : lambda.params)
             param.accept(this, ctx);
         if (lambda.kind == Tree.LambdaDef.Kind.EXPR) {
+            ctx.open(lambda.exprScope);
             lambda.expr.accept(this, ctx);
-            lambda.type = lambda.expr.type;
+            lambda.type = new FunType(lambda.expr.type, argTypes);
+            ctx.close();
         } else {
             lambda.block.accept(this, ctx);
-            lambda.type = ERROR;
+            Type returnType;
+            if (lambda.block.returnType.isEmpty()) {
+//                System.err.printf("no return\n");
+                returnType = VOID;
+            } else {
+                for (var type : lambda.block.returnType) {
+//                    System.err.printf("%s\n", type);
+                }
+                returnType = lambda.block.returnType.get(0);
+                for (int i = 1; i < lambda.block.returnType.size(); i++) {
+                    var currType = lambda.block.returnType.get(i);
+                    var _type = returnType;
+                    returnType = getUpperTypeBound(returnType, currType);
+//                    System.err.printf("upper type bound of %s and %s is %s\n", _type, currType, returnType);
+                }
+            }
+            if (!returnType.isVoidType()) {
+                if(!lambda.block.returns)
+                    issue(new MissingReturnError(lambda.block.pos));
+                }
+            if (returnType.hasError()) {
+                issue(new IncompatReturnTypesError(lambda.block.pos));
+                lambda.type = ERROR;
+            } else {
+                lambda.type = new FunType(returnType, argTypes);
+            }
         }
+        lambda.symbol.type = lambda.type;
         ctx.close();
+        ctx.redeclare(lambda.symbol);
+        loopLevel.pop();
     }
 
     // Only usage: check if an initializer cyclically refers to the declared variable, e.g. var x = x + 1
 //    private Optional<Pos> localVarDefPos = Optional.empty();
+
+    public Type getUpperTypeBound(Type type1, Type type2) {
+        if (type1.hasError() || type2.hasError()) {
+            return ERROR;
+        }
+        if (type1.isNullType()) {
+            if (!type2.isNullType() && !type2.isClassType()) {
+                return ERROR;
+            } else {
+                return type2;
+            }
+        } else if (type1.isVoidType() || type1.isBaseType() || type1.isArrayType()) {
+            if (!type1.eq(type2)) {
+                return ERROR;
+            } else {
+                return type1;
+            }
+        } else if (type1.isClassType()) {
+            if (!type2.isClassType()) {
+                return ERROR;
+            }
+            while (true) {
+                if (type2.subtypeOf(type1)) {
+                    return type1;
+                } else if (((ClassType) type1).superType.isPresent()) {
+                    type1 = ((ClassType) type1).superType.get();
+                } else {
+                    return ERROR;
+                }
+            }
+        } else if (type1.isFuncType()) {
+            if (((FunType) type1).argTypes.size() != ((FunType) type2).argTypes.size()) {
+                return ERROR;
+            }
+            var returnType = getUpperTypeBound(((FunType) type1).returnType, ((FunType) type2).returnType);
+//            System.err.printf("upper type bound of %s and %s is %s\n",
+//                    ((FunType) type1).returnType, ((FunType) type2).returnType, returnType);
+            if (returnType.hasError()) {
+                return ERROR;
+            }
+            List<Type> argTypes = new ArrayList<>();
+            for (var i = 0; i < ((FunType) type1).argTypes.size(); i++) {
+                var type = getLowerTypeBound(((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i));
+//                System.err.printf("lower type bound of %s and %s is %s\n",
+//                        ((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i), type);
+                if (type.hasError()) {
+                    return ERROR;
+                }
+                argTypes.add(type);
+            }
+            return new FunType(returnType, argTypes);
+        } else {
+            return ERROR;
+        }
+    }
+
+    public Type getLowerTypeBound(Type type1, Type type2) {
+        if (type1.isFuncType() || type2.isFuncType()) {
+            if (!type1.isFuncType() || !type2.isFuncType()) {
+                return ERROR;
+            }
+
+            if (((FunType) type1).argTypes.size() != ((FunType) type2).argTypes.size()) {
+                return ERROR;
+            }
+            var returnType = getLowerTypeBound(((FunType) type1).returnType, ((FunType) type2).returnType);
+//            System.err.printf("lower type bound of %s and %s is %s\n",
+//                    ((FunType) type1).returnType, ((FunType) type2).returnType, returnType);
+            if (returnType.hasError()) {
+                return ERROR;
+            }
+            List<Type> argTypes = new ArrayList<>();
+            for (var i = 0; i < ((FunType) type1).argTypes.size(); i++) {
+                var type = getUpperTypeBound(((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i));
+//                System.err.printf("upper type bound of %s and %s is %s\n",
+//                        ((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i), type);
+                if (type.hasError()) {
+                    return ERROR;
+                }
+                argTypes.add(type);
+            }
+            return new FunType(returnType, argTypes);
+        } else if (type1.subtypeOf(type2)) {
+            return type1;
+        } else if(type2.subtypeOf(type1)) {
+            return type2;
+        } else {
+            return ERROR;
+        }
+    }
 }

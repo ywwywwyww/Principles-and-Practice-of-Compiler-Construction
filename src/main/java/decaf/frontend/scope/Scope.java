@@ -74,6 +74,7 @@ public abstract class Scope implements Iterable<Symbol> {
 
     public void undeclare(Symbol symbol)
     {
+        assert symbols.containsKey(symbol.name);
         symbols.remove(symbol.name);
     }
 

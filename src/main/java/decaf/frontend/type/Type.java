@@ -51,6 +51,10 @@ public abstract class Type {
         return false;
     }
 
+    public boolean isNullType() {
+        return false;
+    }
+
     public boolean noError() {
         return true;
     }

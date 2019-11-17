@@ -155,6 +155,12 @@ public class ScopeStack {
         return findWhile(key, whatever -> true, s -> !(s.domain().isLocalScope() && s.pos.compareTo(pos) >= 0));
     }
 
+    public Optional<Symbol> lookupBeforeForLambda(String key, Pos pos) {
+        return findWhile(key, whatever -> true,
+                s -> !((s.domain().isLocalScope() || s.domain().isLambdaScope() || s.domain().isFormalScope()) &&
+                        s.pos.compareTo(pos) >= 0));
+    }
+
     /**
      * Find if a symbol is conflicting with some already defined symbol. Rules:
      * First, if the current scope is local scope or formal scope, then it cannot conflict with any already defined

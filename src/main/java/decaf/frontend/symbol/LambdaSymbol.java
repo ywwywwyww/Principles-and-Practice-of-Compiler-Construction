@@ -9,7 +9,7 @@ import decaf.frontend.type.Type;
 
 public final class LambdaSymbol extends Symbol {
 
-    public final Type type;
+    public Type type;
 
     public final LambdaScope scope;
 
