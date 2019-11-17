@@ -1,0 +1,19 @@
+class A {
+    static int sf(int x) { return x - 1; }
+    int(int) vf;
+}
+
+class Main {
+    int f(int x) { return x + 2; }
+
+    static void main() {
+        var a = new A();
+        var f1 = f;             // bad
+        var f2 = a.sf;          // ok
+        var f3 = a.vf;          // bad
+        a.sf = Main.main;       // bad
+
+        int[] arr;
+        var len = arr.length;   // ok
+    }
+}

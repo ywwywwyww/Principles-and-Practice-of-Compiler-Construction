@@ -98,7 +98,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             block.returnStmt.addAll(stmt.returnStmt);
             block.returnType.addAll(stmt.returnType);
         }
-//            block.missReturnStmt.addAll(block.stmts.get(block.stmts.size() - 1).missReturnStmt);
     }
 
     @Override
@@ -120,8 +119,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 if (symbol.isLocalVar() || symbol.isParam()) {
                     if (ctx.currentLambda().isPresent()) {
                         if (ctx.lookupBeforeForLambda(lhs.symbol.name, ctx.currentLambda().get().pos).isPresent()) {
-//                            System.err.printf("%s\n", ctx.lookupBefore(lhs.symbol.name, ctx.currentLambda().get().pos));
-//                            System.err.printf("%s %s\n", stmt.pos, ctx.currentLambda().get().pos);
                             issue(new BadCaptureError(stmt.pos));
                         }
                     }
@@ -157,9 +154,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             stmt.returnStmt.addAll(stmt.falseBranch.get().returnStmt);
             stmt.returnType.addAll(stmt.falseBranch.get().returnType);
         }
-//        System.err.printf("if @ %s %s\n", stmt.pos, stmt.returnType);
-//            stmt.missReturnStmt.addAll(stmt.trueBranch.missReturnStmt);
-//            stmt.missReturnStmt.addAll(stmt.falseBranch.get().missReturnStmt);
     }
 
     @Override
@@ -203,14 +197,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitReturn(Tree.Return stmt, ScopeStack ctx) {
-        // TODO: return stmt in lambda expr
         if (ctx.currentMethod().type.isVarType()) {
             stmt.expr.ifPresent(e -> e.accept(this, ctx));
             var actual = stmt.expr.map(e -> e.type).orElse(BuiltInType.VOID);
             stmt.returnStmt.add(stmt);
             stmt.returnType.add(actual);
             stmt.returns = stmt.expr.isPresent();
-//            stmt.missReturnStmt.clear();
         } else {
             var expected = ((FunType) ctx.currentMethod().type).returnType;
             stmt.expr.ifPresent(e -> e.accept(this, ctx));
@@ -219,9 +211,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 issue(new BadReturnTypeError(stmt.pos, expected.toString(), actual.toString()));
             }
             stmt.returns = stmt.expr.isPresent();
-            if (stmt.returns) {
-//                stmt.missReturnStmt.clear();
-            }
         }
     }
 
@@ -396,7 +385,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         expr.type = ERROR;
 
         if (expr.receiver.isEmpty()) {
-//            var symbol = ctx.lookupBefore(expr.name, localVarDefPos.orElse(expr.pos));
             var symbol = ctx.lookupBefore(expr.name, expr.pos);
             if (symbol.isPresent()) {
                 if (symbol.get().isMethodSymbol())
@@ -485,7 +473,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             if (expr.receiver.isEmpty()) {
                 // Variable, which should be complicated since a legal variable could refer to a local var,
                 // a visible member var, and a class name.
-//                var symbol = ctx.lookupBefore(expr.name, localVarDefPos.orElse(expr.pos));
                 var symbol = ctx.lookupBefore(expr.name, expr.pos);
                 if (symbol.isPresent()) {
                     if (symbol.get().isVarSymbol()) {
@@ -703,11 +690,9 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         if (stmt.initVal.isEmpty()) return;
 
         var initVal = stmt.initVal.get();
-//        localVarDefPos = Optional.ofNullable(stmt.id.pos);
         ctx.undeclare(stmt.symbol);
         initVal.accept(this, ctx);
         ctx.declare(stmt.symbol);
-//        localVarDefPos = Optional.empty();
         if (stmt.symbol.type.isVarType())
         {
             if (initVal.type.isVoidType())
@@ -729,7 +714,6 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitLambdaDef(Tree.LambdaDef lambda, ScopeStack ctx) {
-//        System.err.printf("visit lambda def @ %s\n", lambda.pos);
         List<Type> argTypes = new ArrayList<>();
         for (var param : lambda.params) {
             argTypes.add(param.typeLit.get().type);
@@ -747,18 +731,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             lambda.block.accept(this, ctx);
             Type returnType;
             if (lambda.block.returnType.isEmpty()) {
-//                System.err.printf("no return\n");
                 returnType = VOID;
             } else {
-                for (var type : lambda.block.returnType) {
-//                    System.err.printf("%s\n", type);
-                }
                 returnType = lambda.block.returnType.get(0);
                 for (int i = 1; i < lambda.block.returnType.size(); i++) {
                     var currType = lambda.block.returnType.get(i);
-                    var _type = returnType;
                     returnType = getUpperTypeBound(returnType, currType);
-//                    System.err.printf("upper type bound of %s and %s is %s\n", _type, currType, returnType);
                 }
             }
             if (!returnType.isVoidType()) {
@@ -815,16 +793,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 return ERROR;
             }
             var returnType = getUpperTypeBound(((FunType) type1).returnType, ((FunType) type2).returnType);
-//            System.err.printf("upper type bound of %s and %s is %s\n",
-//                    ((FunType) type1).returnType, ((FunType) type2).returnType, returnType);
             if (returnType.hasError()) {
                 return ERROR;
             }
             List<Type> argTypes = new ArrayList<>();
             for (var i = 0; i < ((FunType) type1).argTypes.size(); i++) {
                 var type = getLowerTypeBound(((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i));
-//                System.err.printf("lower type bound of %s and %s is %s\n",
-//                        ((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i), type);
                 if (type.hasError()) {
                     return ERROR;
                 }
@@ -846,16 +820,12 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                 return ERROR;
             }
             var returnType = getLowerTypeBound(((FunType) type1).returnType, ((FunType) type2).returnType);
-//            System.err.printf("lower type bound of %s and %s is %s\n",
-//                    ((FunType) type1).returnType, ((FunType) type2).returnType, returnType);
             if (returnType.hasError()) {
                 return ERROR;
             }
             List<Type> argTypes = new ArrayList<>();
             for (var i = 0; i < ((FunType) type1).argTypes.size(); i++) {
                 var type = getUpperTypeBound(((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i));
-//                System.err.printf("upper type bound of %s and %s is %s\n",
-//                        ((FunType) type1).argTypes.get(i), ((FunType) type2).argTypes.get(i), type);
                 if (type.hasError()) {
                     return ERROR;
                 }

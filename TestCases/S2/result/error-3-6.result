@@ -1,0 +1,2 @@
+*** Error at (3,31): missing return statement: control reaches end of non-void block
+*** Error at (3,31): incompatible return types in blocked expression

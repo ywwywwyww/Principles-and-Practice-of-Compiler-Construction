@@ -1,0 +1,19 @@
+class Main {
+    int v;
+    static void main() {}
+    void test() {
+        var x = new int[10];
+        var m = new Main();
+        var addx = fun() {
+            x[0] = x[0] + 1;        // ok
+            int y = 0;
+            var addy = fun() {
+                y = y + 1;          // bad
+                m.v = 1;            // ok
+                v = 1;              // ok
+            };
+            y = -1;                 // ok
+            m = null;               // bad
+        };
+    }
+}

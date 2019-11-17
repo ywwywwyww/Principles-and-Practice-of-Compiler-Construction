@@ -1,0 +1,8 @@
+class Main {
+    static void main() {
+        var f = fun(int x, int y) => x + y;
+        f(1);
+        f(1, "2");
+        (fun (int x, int y) => x * y)(1, 2, 3);
+    }
+}

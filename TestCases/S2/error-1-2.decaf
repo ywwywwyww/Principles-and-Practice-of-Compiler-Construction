@@ -1,0 +1,12 @@
+abstract class Foo {
+    abstract int foo();
+}
+
+class Baz extends Foo {
+    int baz() { return 1; }
+}
+
+class Main {
+    static void main() {
+    }
+}

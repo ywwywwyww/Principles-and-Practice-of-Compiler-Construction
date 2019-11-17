@@ -1,0 +1,6 @@
+*** Error at (26,13): lambda expression expects 0 argument(s) but 1 given
+*** Error at (27,12): lambda expression expects 0 argument(s) but 1 given
+*** Error at (28,12): lambda expression expects 0 argument(s) but 1 given
+*** Error at (29,15): lambda expression expects 0 argument(s) but 1 given
+*** Error at (30,12): lambda expression expects 0 argument(s) but 1 given
+*** Error at (31,13): function 'func' expects 0 argument(s) but 1 given

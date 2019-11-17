@@ -1,0 +1,6 @@
+class Main {
+    static void main() {
+        var str = "2333";
+        str(2333);
+    }
+}

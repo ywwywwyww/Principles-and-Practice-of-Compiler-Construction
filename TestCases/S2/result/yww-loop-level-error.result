@@ -1,0 +1,3 @@
+*** Error at (3,9): 'break' is only allowed inside a loop
+*** Error at (5,13): 'break' is only allowed inside a loop
+*** Error at (9,17): 'break' is only allowed inside a loop

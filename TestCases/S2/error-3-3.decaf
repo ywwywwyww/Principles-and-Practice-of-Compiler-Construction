@@ -1,0 +1,12 @@
+class Main {
+    static void main() {
+        var f = fun (int x) {
+            var g = fun (int y) => x + y;
+            var h = fun (int z) {
+                var f1 = f;       // bad
+                var g1 = g;
+                var h1 = h;       // bad
+            };
+        };
+    }
+}

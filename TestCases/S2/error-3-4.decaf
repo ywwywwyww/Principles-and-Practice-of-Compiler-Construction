@@ -1,0 +1,7 @@
+class Main {
+    static void main() {
+        var f = fun (int x) {
+            var f = fun (int y) => x + y;
+        };
+    }
+}

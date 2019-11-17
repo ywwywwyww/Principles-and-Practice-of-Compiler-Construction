@@ -1,0 +1,33 @@
+class Main
+{
+    static void() a()
+    {
+        void() res;
+        return res;
+    }
+    static void() b()
+    {
+        void()[] res;
+        return res[0];
+    }
+    static void()[] c()
+    {
+        void()[] res;
+        return res;
+    }
+    static void func(){}
+    static void() d()
+    {
+        return func;
+    }
+    static void main()
+    {
+        void()[] f;
+        f[0](1);
+        a()(1);
+        b()(1);
+        c()[0](1);
+        d()(1);
+        func(1);
+    }
+}
