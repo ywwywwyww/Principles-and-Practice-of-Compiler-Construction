@@ -24,7 +24,7 @@
 
 ### LambdaScope
 
-　　加了一个 `LambdaScope` 和 `LambdaSymbol`。
+　　加了一个 `LambdaScope` 和 `LambdaSymbol`。然后 `Namer` 中要把所有包含 `Expr` 的部分 visit 一下。
 
 ### LambdaReturnType
 
@@ -32,7 +32,9 @@
 
 ## 遇到的问题
 
-　　有一些问题文档里面没有，要自己看测例。
+　　有一些细节文档里面没有，要自己看测例去拟合。
+
+　　还有一些细节文档里没说测例里面也没有。
 
 　　其他问题修完锅就忘了。
 
@@ -44,7 +46,7 @@
 
 　　在定义时，如果不是成员变量，就在当前作用域到上一个 `FormalScope`/`LambdaScope` 以及 `GlobalScope`中查找。否则在所有作用域中查找。另外，在 `visitLocalVarDef`即变量定义节点的时候要先把左侧正在定义的变量从作用域栈中删掉再 visit initVal，这样就不需要手动 ban 掉一些变量了。
 
-　　在引用时，在除了属于同一个 `LocalScope` 且位置在当前位置之后部分的作用域中查找。
+　　在引用时，在是 `LocalScope` 且位置在当前位置之前部分以及其他包含该作用域的作用域中查找。
 
 ### Q2  对 AST 的两趟遍历分别做了什么事？分别确定了哪些节点的类型？ 
 
