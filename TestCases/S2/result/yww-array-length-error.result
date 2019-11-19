@@ -1,2 +1,3 @@
 *** Error at (4,25): function 'length' expects 0 argument(s) but 1 given
 *** Error at (6,20): function 'len' expects 0 argument(s) but 1 given
+*** Error at (10,25): lambda expression expects 0 argument(s) but 1 given

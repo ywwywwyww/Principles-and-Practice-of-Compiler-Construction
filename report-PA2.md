@@ -59,3 +59,7 @@
 　　使用了访问者模式。
 
 　　对每一个 AST 节点类型都定义了一个成员方法 ` accept(Visitor<C> v, C ctx)`，其中 `v` 是我们处理使用的实例，`ctx` 是一些其他信息例如作用域栈。然后在该方法中调用实际处理该节点的方法 `v.visitLambdaDef(this, ctx);` ，这样当我们需要对一个节点进行处理的时候可以直接调用 `a.accept(this, ctx)`，这样就会依据 `a` 的实际类型调用不同的类的 `accept` 方法，进而调用不同的处理的函数进行处理。
+
+## Reference
+
+　　参考了实验指导中给出的 维护每个类未被重载的 abstract method 的方法、计算类型上界的方法、新建 `Lambda Scope` 和 `Lambda Symbol` 。
