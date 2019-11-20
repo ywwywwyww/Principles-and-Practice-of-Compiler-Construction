@@ -1,0 +1,2 @@
+*** Error at (4,25): cannot define variable 'i' in update statement
+*** Error at (7,25): cannot define variable 'i' in update statement

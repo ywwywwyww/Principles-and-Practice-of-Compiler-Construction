@@ -337,6 +337,9 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         loop.init.accept(this, ctx);
         loop.cond.accept(this, ctx);
         loop.update.accept(this, ctx);
+        if (loop.update instanceof Tree.LocalVarDef) {
+            issue(new BadLocalVarDefError(loop.update.pos, ((Tree.LocalVarDef) loop.update).name));
+        }
         for (var stmt : loop.body.stmts) {
             stmt.accept(this, ctx);
         }
