@@ -26,6 +26,10 @@ public interface Visitor<C> {
         visitOthers(that, ctx);
     }
 
+    default void visitLambdaDef(Tree.LambdaDef that, C ctx) {
+        visitOthers(that, ctx);
+    }
+
     default void visitTInt(Tree.TInt that, C ctx) {
         visitOthers(that, ctx);
     }
@@ -47,6 +51,11 @@ public interface Visitor<C> {
     }
 
     default void visitTArray(Tree.TArray that, C ctx) {
+        visitOthers(that, ctx);
+    }
+
+    default void visitTLambda(Tree.TLambda that, C ctx)
+    {
         visitOthers(that, ctx);
     }
 

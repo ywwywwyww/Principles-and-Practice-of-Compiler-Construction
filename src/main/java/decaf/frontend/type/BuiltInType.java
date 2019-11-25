@@ -1,5 +1,7 @@
 package decaf.frontend.type;
 
+import org.apache.commons.lang3.ObjectUtils;
+
 /**
  * Built-in types: int, bool, string, void and error (ONLY for type checking).
  */
@@ -41,6 +43,8 @@ public final class BuiltInType extends Type {
      */
     public static final BuiltInType ERROR = new BuiltInType("Error");
 
+    public static final BuiltInType VAR = new BuiltInType("var");
+
     @Override
     public boolean subtypeOf(Type that) {
         if (eq(ERROR) || that.eq(ERROR)) {
@@ -70,6 +74,16 @@ public final class BuiltInType extends Type {
     @Override
     public boolean isVoidType() {
         return eq(VOID);
+    }
+
+    @Override
+    public boolean isVarType(){
+        return eq(VAR);
+    }
+
+    @Override
+    public boolean isNullType(){
+        return eq(NULL);
     }
 
     @Override

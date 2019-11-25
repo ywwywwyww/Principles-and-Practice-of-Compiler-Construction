@@ -4,9 +4,7 @@ import decaf.frontend.symbol.ClassSymbol;
 import decaf.frontend.symbol.MethodSymbol;
 import decaf.frontend.symbol.Symbol;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Class scope: stores class member symbols, i.e. variables and functions. It is owned by a class symbol.

@@ -72,6 +72,18 @@ public abstract class Scope implements Iterable<Symbol> {
         symbol.setDomain(this);
     }
 
+    public void undeclare(Symbol symbol)
+    {
+        assert symbols.containsKey(symbol.name);
+        symbols.remove(symbol.name);
+    }
+
+    public void redeclare(Symbol symbol)
+    {
+        undeclare(symbol);
+        declare(symbol);
+    }
+
     @Override
     public Iterator<Symbol> iterator() {
         var list = new ArrayList<>(symbols.values());
@@ -99,8 +111,12 @@ public abstract class Scope implements Iterable<Symbol> {
         return false;
     }
 
-    public boolean isFormalOrLocalScope() {
-        return isFormalScope() || isLocalScope();
+    public boolean isLambdaScope() {
+        return false;
+    }
+
+    public boolean isFormalOrLocalScopeOrLambdaScope() {
+        return isFormalScope() || isLocalScope() || isLambdaScope();
     }
 
     protected Map<String, Symbol> symbols = new TreeMap<>();

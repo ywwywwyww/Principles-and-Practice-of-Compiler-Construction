@@ -42,10 +42,11 @@ public final class VarSymbol extends Symbol {
     }
 
     public boolean isParam() {
-        return definedIn.isFormalScope();
+        return definedIn.isFormalScope() || definedIn.isLambdaScope();
     }
 
-    public boolean isMemberVar() {
+    @Override
+    public boolean isMember() {
         return definedIn.isClassScope();
     }
 
@@ -56,11 +57,12 @@ public final class VarSymbol extends Symbol {
      * @throws IllegalArgumentException if this is not a member variable
      */
     public ClassSymbol getOwner() {
-        if (!isMemberVar()) {
+        if (!isMember()) {
             throw new IllegalArgumentException("this var symbol is not a member var");
         }
         return ((ClassScope) definedIn).getOwner();
     }
+
 
     /**
      * Temp, reserved for {@link decaf.frontend.tacgen.TacGen}.
