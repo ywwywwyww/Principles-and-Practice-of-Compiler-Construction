@@ -224,14 +224,30 @@ public class ScopeStack {
         currentScope().declare(symbol);
     }
 
-    public void redeclare(Symbol symbol)
-    {
+    public void redeclare(Symbol symbol) {
         currentScope().redeclare(symbol);
     }
 
-    public void undeclare(Symbol symbol)
-    {
+    public void undeclare(Symbol symbol) {
         currentScope().undeclare(symbol);
+    }
+
+    // Look up symbol in the scope stack and capture this symbol in lambda scope
+    public void capture(Symbol symbol) {
+//        System.err.printf("try to capture %s in %s\n", symbol, currentScope());
+        ListIterator<Scope> iter = scopeStack.listIterator(scopeStack.size());
+        while (iter.hasPrevious()) {
+            var scope = iter.previous();
+            if (symbol.definedIn == scope) {
+                return;
+            }
+            if (scope.isLambdaScope()) {
+                if (((LambdaScope) scope).capturedSymbol.contains(symbol)) {
+                    return;
+                }
+                ((LambdaScope) scope).capturedSymbol.add(symbol);
+            }
+        }
     }
 
     private Stack<Scope> scopeStack = new Stack<>();

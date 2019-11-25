@@ -46,6 +46,9 @@ public final class PrettyScope extends PrettyPrinter<Scope> {
             printer.incIndent();
             if (scope.isEmpty()) printer.println("<empty>");
             else scope.forEach(printer::println);
+//            printer.println("CAPTURED SYMBOL:");
+//            if (((LambdaScope) scope).capturedSymbol.isEmpty()) printer.println("<empty>");
+//            else ((LambdaScope) scope).getCapturedSymbol().forEach(printer::println);
             lambdaScope.nestedLocalScope().ifPresent(this::pretty);
             printer.decIndent();
         } else if (scope.isLocalScope()) {

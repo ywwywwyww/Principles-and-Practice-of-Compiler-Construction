@@ -991,11 +991,13 @@ public abstract class Tree {
         // For type check
         public Type type;
         public boolean callable;
+        public boolean isThis;
 
         public Expr(Kind kind, String displayName, Pos pos) {
             super(kind, displayName, pos);
             this.callable = false;
             this.name = null; // corresponds lambda expression
+            this.isThis = false;
         }
 
         // 这个表达式是否有名字

@@ -1,8 +1,10 @@
 package decaf.frontend.scope;
 
 import decaf.frontend.symbol.LambdaSymbol;
+import decaf.frontend.symbol.Symbol;
 
-import java.util.Optional;
+import java.lang.reflect.Array;
+import java.util.*;
 
 public class LambdaScope extends Scope {
 
@@ -15,6 +17,7 @@ public class LambdaScope extends Scope {
         } else {
             ((LambdaScope) parent).setNested(this);
         }
+        capturedSymbol = new HashSet<>();
     }
 
     public LambdaSymbol getOwner() {
@@ -53,5 +56,14 @@ public class LambdaScope extends Scope {
     public Scope nested;
 
     public Scope parent;
+
+    // class symbol correspond THIS
+    public Set<Symbol> capturedSymbol;
+
+    public ArrayList<Symbol> getCapturedSymbol() {
+        var list = new ArrayList<>(capturedSymbol);
+        Collections.sort(list);
+        return list;
+    }
 
 }
