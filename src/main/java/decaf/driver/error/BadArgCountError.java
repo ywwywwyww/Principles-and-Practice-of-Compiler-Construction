@@ -24,11 +24,7 @@ public class BadArgCountError extends DecafError {
 
     @Override
     protected String getErrMsg() {
-        if (method == null)
-            return "lambda expression expects " + expect
-                    + " argument(s) but " + count + " given";
-        else
-            return "function '" + method + "' expects " + expect
-                    + " argument(s) but " + count + " given";
+        return "function '" + method + "' expects " + expect
+                + " argument(s) but " + count + " given";
     }
 }

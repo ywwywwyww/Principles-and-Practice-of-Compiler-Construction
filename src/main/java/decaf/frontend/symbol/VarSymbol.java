@@ -4,6 +4,7 @@ import decaf.frontend.scope.ClassScope;
 import decaf.frontend.tree.Pos;
 import decaf.frontend.type.ClassType;
 import decaf.frontend.type.Type;
+import decaf.lowlevel.instr.Temp;
 
 /**
  * Variable symbol, representing a member (defined as a class member), param (defined as a functional parameter),
@@ -41,11 +42,10 @@ public final class VarSymbol extends Symbol {
     }
 
     public boolean isParam() {
-        return definedIn.isFormalScope() || definedIn.isLambdaScope();
+        return definedIn.isFormalScope();
     }
 
-    @Override
-    public boolean isMember() {
+    public boolean isMemberVar() {
         return definedIn.isClassScope();
     }
 
@@ -56,9 +56,14 @@ public final class VarSymbol extends Symbol {
      * @throws IllegalArgumentException if this is not a member variable
      */
     public ClassSymbol getOwner() {
-        if (!isMember()) {
+        if (!isMemberVar()) {
             throw new IllegalArgumentException("this var symbol is not a member var");
         }
         return ((ClassScope) definedIn).getOwner();
     }
+
+    /**
+     * Temp, reserved for {@link decaf.frontend.tacgen.TacGen}.
+     */
+    public Temp temp;
 }

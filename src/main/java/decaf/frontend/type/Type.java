@@ -1,7 +1,5 @@
 package decaf.frontend.type;
 
-import decaf.frontend.typecheck.Typer;
-
 /**
  * Type.
  * <p>
@@ -13,7 +11,7 @@ import decaf.frontend.typecheck.Typer;
  *     <li>function types (cannot be expressed in programs, but we use them to type check function calls)</li>
  * </ol>
  * <p>
- * Types are resolved by {@link Typer}.
+ * Types are resolved by {@link decaf.frontend.typecheck.Typer}.
  *
  * @see BuiltInType
  * @see ClassType
@@ -44,14 +42,6 @@ public abstract class Type {
     }
 
     public boolean isVoidType() {
-        return false;
-    }
-
-    public boolean isVarType(){
-        return false;
-    }
-
-    public boolean isNullType() {
         return false;
     }
 

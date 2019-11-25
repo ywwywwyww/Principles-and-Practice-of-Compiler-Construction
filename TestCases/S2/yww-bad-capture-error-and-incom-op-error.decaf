@@ -1,9 +1,0 @@
-class Main {
-    static void main() {
-        var a = 1;
-        var s = "12345";
-        var c =fun () {
-            a = s;
-        };
-    }
-} 

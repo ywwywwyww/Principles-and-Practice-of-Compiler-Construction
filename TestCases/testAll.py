@@ -31,15 +31,12 @@ def eq(expected: str, actual: str) -> bool:
     results = list(difflib.unified_diff(expected_lines, actual_lines, expected, actual))
     if len(results) == 0:
         print('\033[32mCORRECT\033[0m' if SHOW_COLOR else 'CORRECT')
-        sys.stdout.flush()
         return True
 
     print('\033[31mWRONG\033[0m' if SHOW_COLOR else 'WRONG')
-    sys.stdout.flush()
     if SHOW_DIFF:
         s = '\n'.join(results)
         print('\033[35m' + s + '\033[0m' if SHOW_COLOR else s)
-        sys.stdout.flush()
     return False
 
 # running a shell command
@@ -50,12 +47,10 @@ def run(cmd: [str], output_name: str = '', ignore_error: bool = False) -> bool:
         ret = p.wait(TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         print('\033[1;34mTIMEOUT\033[0m' if SHOW_COLOR else 'TIMEOUT')
-        sys.stdout.flush()
         return False
 
     if not ignore_error and ret != 0:
         print('\033[1;37;41mERROR\033[0m' if SHOW_COLOR else 'ERROR')
-        sys.stdout.flush()
         return False
 
     return True
@@ -107,7 +102,6 @@ class Tester:
     def test(self) -> [bool]:
         s = 'Running test set {}'.format(self.test_set)
         print('\033[4m' + s + '\033[0m' if SHOW_COLOR else s)
-        sys.stdout.flush()
         return [self.test_one(t) for t in self.test_cases]
 
 class PATester(Tester):

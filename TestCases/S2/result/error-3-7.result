@@ -1,4 +1,0 @@
-*** Error at (11,18): can not reference a non-static field 'f' from static method 'main'
-*** Error at (13,20): field 'vf' of 'class A' not accessible here
-*** Error at (14,14): cannot assign value to class member method 'sf'
-*** Error at (14,14): incompatible operands: int => int = () => void

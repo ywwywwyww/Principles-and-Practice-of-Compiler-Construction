@@ -20,7 +20,7 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     public final String name;
 
-    public Type type;
+    public final Type type;
 
     public final Pos pos;
 
@@ -67,7 +67,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         return pos + " -> " + str();
     }
 
-    public Scope definedIn;
+    Scope definedIn;
 
     /**
      * Two symbols are compared by their positions.
@@ -78,9 +78,5 @@ public abstract class Symbol implements Comparable<Symbol> {
     @Override
     public int compareTo(Symbol that) {
         return this.pos.compareTo(that.pos);
-    }
-
-    public boolean isMember() {
-        return false;
     }
 }

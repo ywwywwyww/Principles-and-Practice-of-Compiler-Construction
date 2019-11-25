@@ -3,12 +3,10 @@ package decaf.frontend.symbol;
 import decaf.frontend.scope.ClassScope;
 import decaf.frontend.scope.GlobalScope;
 import decaf.frontend.tree.Pos;
-import decaf.frontend.tree.Tree;
 import decaf.frontend.type.ClassType;
+import decaf.lowlevel.tac.ClassInfo;
 
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -20,33 +18,24 @@ public final class ClassSymbol extends Symbol {
 
     public final ClassType type;
 
-    public final Tree.Modifiers modifiers;
-
     /**
      * Associated class scope of this class.
      */
     public final ClassScope scope;
 
-    public Set<String> unoverridenAbstractMethod;
-
-    public ClassSymbol(String name, ClassType type, ClassScope scope, Pos pos, Tree.Modifiers modifiers) {
+    public ClassSymbol(String name, ClassType type, ClassScope scope, Pos pos) {
         super(name, type, pos);
         this.parentSymbol = Optional.empty();
         this.scope = scope;
         this.type = type;
-        this.modifiers = modifiers;
-        this.unoverridenAbstractMethod = new HashSet<>();
         scope.setOwner(this);
     }
 
-    public ClassSymbol(String name, ClassSymbol parentSymbol, ClassType type, ClassScope scope, Pos pos,
-                       Tree.Modifiers modifiers) {
+    public ClassSymbol(String name, ClassSymbol parentSymbol, ClassType type, ClassScope scope, Pos pos) {
         super(name, type, pos);
         this.parentSymbol = Optional.of(parentSymbol);
         this.scope = scope;
         this.type = type;
-        this.modifiers = modifiers;
-        this.unoverridenAbstractMethod = new HashSet<>();
         scope.setOwner(this);
     }
 
@@ -76,13 +65,37 @@ public final class ClassSymbol extends Symbol {
         return main;
     }
 
-    public boolean isAbstract() { return modifiers.isAbstract(); }
-
     @Override
     protected String str() {
-        var modStr = modifiers.toString();
-        if (!modStr.isEmpty()) modStr += " ";
-        return modStr + "class " + name + parentSymbol.map(classSymbol -> " : " + classSymbol.name).orElse("");
+        return "class " + name + parentSymbol.map(classSymbol -> " : " + classSymbol.name).orElse("");
+    }
+
+    /**
+     * Get class info, required by tac generation.
+     *
+     * @return class info
+     * @see decaf.lowlevel.tac.ClassInfo
+     */
+    public ClassInfo getInfo() {
+        var memberVariables = new TreeSet<String>();
+        var memberMethods = new TreeSet<String>();
+        var staticMethods = new TreeSet<String>();
+
+        for (var symbol : scope) {
+            if (symbol.isVarSymbol()) {
+                memberVariables.add(symbol.name);
+            } else if (symbol.isMethodSymbol()) {
+                var methodSymbol = (MethodSymbol) symbol;
+                if (methodSymbol.isStatic()) {
+                    staticMethods.add(methodSymbol.name);
+                } else {
+                    memberMethods.add(methodSymbol.name);
+                }
+            }
+        }
+
+        return new ClassInfo(name, parentSymbol.map(symbol -> symbol.name), memberVariables, memberMethods,
+                staticMethods, isMainClass());
     }
 
     private boolean main;

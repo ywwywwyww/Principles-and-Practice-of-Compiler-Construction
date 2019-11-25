@@ -1,9 +1,0 @@
-class Foo {
-    abstract int foo();
-    abstract string bar();
-}
-
-class Main {
-    static void main() {
-    }
-}
