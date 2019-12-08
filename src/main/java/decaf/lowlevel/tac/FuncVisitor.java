@@ -1,10 +1,14 @@
 package decaf.lowlevel.tac;
 
+import decaf.frontend.tacgen.TacEmitter;
+import decaf.frontend.tree.Visitor;
 import decaf.lowlevel.instr.Temp;
 import decaf.lowlevel.label.FuncLabel;
 import decaf.lowlevel.label.Label;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Append instructions to a TAC function.
@@ -188,16 +192,6 @@ public class FuncVisitor {
         visitStoreTo(object, ctx.getOffset(clazz, variable), value);
     }
 
-    /**
-     * Append instructions to invoke a member method.
-     *
-     * @param object     object ref temp
-     * @param clazz      class name
-     * @param method     member method name
-     * @param args       argument temps
-     * @param needReturn do we need a fresh temp to store the return value? (default false)
-     * @return the fresh temp if we need return (or else null)
-     */
     public Temp visitMemberCall(Temp object, String clazz, String method, List<Temp> args, boolean needReturn) {
         Temp temp = null;
         var vtbl = visitLoadFrom(object);
@@ -413,7 +407,7 @@ public class FuncVisitor {
         return nextTempId;
     }
 
-    FuncVisitor(FuncLabel entry, int numArgs, ProgramWriter.Context ctx) {
+    public FuncVisitor(FuncLabel entry, int numArgs, ProgramWriter.Context ctx) {
         this.ctx = ctx;
         func = new TacFunc(entry, numArgs);
         visitLabel(entry);
@@ -423,9 +417,9 @@ public class FuncVisitor {
         }
     }
 
-    private TacFunc func;
+    public TacFunc func;
 
-    private ProgramWriter.Context ctx;
+    public ProgramWriter.Context ctx;
 
     private int nextTempId = 0;
 

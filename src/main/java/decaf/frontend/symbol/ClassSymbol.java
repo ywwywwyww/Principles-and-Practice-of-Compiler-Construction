@@ -5,6 +5,7 @@ import decaf.frontend.scope.GlobalScope;
 import decaf.frontend.tree.Pos;
 import decaf.frontend.tree.Tree;
 import decaf.frontend.type.ClassType;
+import decaf.lowlevel.tac.ClassInfo;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -83,6 +84,28 @@ public final class ClassSymbol extends Symbol {
         var modStr = modifiers.toString();
         if (!modStr.isEmpty()) modStr += " ";
         return modStr + "class " + name + parentSymbol.map(classSymbol -> " : " + classSymbol.name).orElse("");
+    }
+
+    /**
+     * Get class info, required by tac generation.
+     *
+     * @return class info
+     * @see decaf.lowlevel.tac.ClassInfo
+     */
+    public ClassInfo getInfo() {
+        var memberVariables = new TreeSet<String>();
+        var Methods = new TreeSet<String>();
+
+        for (var symbol : scope) {
+            if (symbol.isVarSymbol()) {
+                memberVariables.add(symbol.name);
+            } else if (symbol.isMethodSymbol()) {
+                var methodSymbol = (MethodSymbol) symbol;
+                Methods.add(methodSymbol.name);
+            }
+        }
+
+        return new ClassInfo(name, parentSymbol.map(symbol -> symbol.name), memberVariables, Methods, isMainClass());
     }
 
     private boolean main;

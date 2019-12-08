@@ -24,14 +24,9 @@ public class ClassInfo {
     public final Set<String> memberVariables;
 
     /**
-     * Member method names.
+     * Method names.
      */
-    public final Set<String> memberMethods;
-
-    /**
-     * Static method names.
-     */
-    public final Set<String> staticMethods;
+    public final Set<String> Methods;
 
     /**
      * All method names.
@@ -49,22 +44,19 @@ public class ClassInfo {
      * @param name            class name
      * @param parent          name of parent class, if any
      * @param memberVariables member variable names
-     * @param memberMethods   member methods names
-     * @param staticMethods   static methods names
+     * @param Methods         methods names
      * @param isMainClass     is it main class?
      */
     public ClassInfo(String name, Optional<String> parent, Set<String> memberVariables,
-                     Set<String> memberMethods, Set<String> staticMethods, boolean isMainClass) {
+                     Set<String> Methods, boolean isMainClass) {
         this.name = name;
         this.parent = parent;
         this.memberVariables = memberVariables;
-        this.memberMethods = memberMethods;
-        this.staticMethods = staticMethods;
+        this.Methods = Methods;
         this.isMainClass = isMainClass;
 
         var methods = new HashSet<String>();
-        methods.addAll(memberMethods);
-        methods.addAll(staticMethods);
+        methods.addAll(Methods);
         this.methods = methods;
     }
 }

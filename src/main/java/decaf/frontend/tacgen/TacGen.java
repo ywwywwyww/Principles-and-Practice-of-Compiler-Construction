@@ -3,6 +3,7 @@ package decaf.frontend.tacgen;
 import decaf.driver.Config;
 import decaf.driver.Phase;
 import decaf.frontend.tree.Tree;
+import decaf.lowlevel.label.FuncLabel;
 import decaf.lowlevel.tac.*;
 
 import java.io.FileNotFoundException;
@@ -20,6 +21,7 @@ public class TacGen extends Phase<Tree.TopLevel, TacProg> implements TacEmitter 
 
     @Override
     public TacProg transform(Tree.TopLevel tree) {
+        System.err.printf("tac gen start!\n");
         // Create class info.
         var info = new ArrayList<ClassInfo>();
         for (var clazz : tree.classes) {
@@ -34,9 +36,9 @@ public class TacGen extends Phase<Tree.TopLevel, TacProg> implements TacEmitter 
         for (var clazz : tree.classes) {
             for (var method : clazz.methods()) {
                 FuncVisitor mv;
-                if (method.symbol.isMain()) {
-                    mv = pw.visitMainMethod();
-                } else {
+//                if (method.symbol.isMain()) {
+//                    mv = pw.visitMainMethod();
+//                } else {
                     // Remember calling convention: pass `this` (if non-static) as an extra argument, via reversed temps.
                     var numArgs = method.params.size();
                     var i = 0;
@@ -50,12 +52,19 @@ public class TacGen extends Phase<Tree.TopLevel, TacProg> implements TacEmitter 
                         param.symbol.temp = mv.getArgTemp(i);
                         i++;
                     }
-                }
+//                }
 
-                method.body.accept(this, mv);
+                method.body.ifPresent(objects -> objects.accept(this, mv));
                 mv.visitEnd();
             }
         }
+
+        // Step3: emit tac instructions for main method.
+        var mainEntry = FuncLabel.MAIN_LABEL;
+        var mv = new FuncVisitor(mainEntry, 0, pw.ctx);
+        var entry = mv.ctx.getFuncLabel("Main", "main");
+        mv.func.add(new TacInstr.DirectCall(entry));
+        mv.visitEnd();
 
         return pw.visitEnd();
     }

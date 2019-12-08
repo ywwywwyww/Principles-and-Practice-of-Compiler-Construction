@@ -75,7 +75,7 @@ public class ProgramWriter {
 
     private HashMap<String, ClassInfo> classes = new HashMap<>();
 
-    private Context ctx = new Context();
+    public Context ctx = new Context();
 
     /**
      * Emit code for initializing a new object. In memory, an object takes 4 * (1 + number of member variables) bytes,
@@ -114,9 +114,9 @@ public class ProgramWriter {
         if (parent.isPresent()) {
             for (var lbl : parent.get().memberMethods) {
                 var method = lbl.method;
-                if (clazz.memberMethods.contains(method)) {
+                if (clazz.Methods.contains(method)) {
                     vtbl.memberMethods.add(ctx.getFuncLabel(clazz.name, method));
-                    clazz.memberMethods.remove(method);
+                    clazz.Methods.remove(method);
                 } else {
                     vtbl.memberMethods.add(lbl);
                 }
@@ -124,7 +124,7 @@ public class ProgramWriter {
         }
 
         // 3. newly declared in this class
-        for (var method : clazz.memberMethods) {
+        for (var method : clazz.Methods) {
             vtbl.memberMethods.add(ctx.getFuncLabel(clazz.name, method));
         }
 
@@ -146,7 +146,7 @@ public class ProgramWriter {
         ctx.putOffsets(vtbl);
     }
 
-    class Context {
+    public class Context {
 
         void putConstructorLabel(String clazz) {
             putFuncLabel(clazz, "new");
@@ -160,7 +160,7 @@ public class ProgramWriter {
             labels.put(clazz + "." + method, new FuncLabel(clazz, method));
         }
 
-        FuncLabel getFuncLabel(String clazz, String method) {
+        public FuncLabel getFuncLabel(String clazz, String method) {
             return labels.get(clazz + "." + method);
         }
 
@@ -186,7 +186,7 @@ public class ProgramWriter {
             return new ArrayList<>(vtables.values());
         }
 
-        int getOffset(String clazz, String member) {
+        public int getOffset(String clazz, String member) {
             return offsets.get(clazz + "." + member);
         }
 

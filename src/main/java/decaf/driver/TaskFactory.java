@@ -4,6 +4,7 @@ import decaf.backend.asm.Asm;
 import decaf.backend.asm.mips.MipsAsmEmitter;
 import decaf.backend.opt.Optimizer;
 import decaf.backend.reg.BruteRegAlloc;
+import decaf.frontend.parsing.JaccParser;
 import decaf.frontend.tacgen.TacGen;
 import decaf.frontend.tree.Tree;
 import decaf.frontend.typecheck.Namer;
@@ -24,10 +25,6 @@ public class TaskFactory {
 
     public Task<InputStream, Tree.TopLevel> parse() {
         return new JaccParser(config);
-    }
-
-    public Task<InputStream, Tree.TopLevel> parseLL() {
-        return new LLParser(config);
     }
 
     public Task<InputStream, Tree.TopLevel> typeCheck() {
