@@ -17,7 +17,7 @@ public class LambdaScope extends Scope {
         } else {
             ((LambdaScope) parent).setNested(this);
         }
-        capturedSymbol = new HashSet<>();
+        capturedSymbol = new ArrayList<>();
     }
 
     public LambdaSymbol getOwner() {
@@ -58,7 +58,7 @@ public class LambdaScope extends Scope {
     public Scope parent;
 
     // class symbol correspond THIS
-    public Set<Symbol> capturedSymbol;
+    public List<Symbol> capturedSymbol;
 
     public ArrayList<Symbol> getCapturedSymbol() {
         var list = new ArrayList<>(capturedSymbol);

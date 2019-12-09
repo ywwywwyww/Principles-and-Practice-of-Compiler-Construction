@@ -3,6 +3,7 @@ package decaf.frontend.typecheck;
 import decaf.driver.Config;
 import decaf.driver.Phase;
 import decaf.driver.error.*;
+import decaf.frontend.scope.FormalScope;
 import decaf.frontend.scope.LocalScope;
 import decaf.frontend.scope.Scope;
 import decaf.frontend.scope.ScopeStack;
@@ -49,6 +50,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitTopLevel(Tree.TopLevel program, ScopeStack ctx) {
+        ctx.lambdaClass = program.lambdaClass;
         for (var clazz : program.classes) {
             clazz.accept(this, ctx);
         }
@@ -492,6 +494,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
                             } else {
                                 expr.setThis();
                                 thisClass = true;
+                                expr.receiver.get().accept(this, ctx);
                             }
                         }
                     } else if (symbol.get().isClassSymbol() && allowClassNameVar) { // special case: a class name
@@ -551,24 +554,45 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         }
         if (ctx.currentLambda().isPresent()) {
             if (!isStaticMethod) {
-                if (thisClass) {
-                    ctx.capture(ctx.currentClass());
-                } else if (expr.receiver.isPresent()) {
-                    if (expr.receiver.get().isThis) {
-                        ctx.capture(ctx.currentClass());
-                    } else if (expr.receiver.get() instanceof Tree.VarSel) {
-                        ctx.capture(((Tree.VarSel) expr.receiver.get()).symbol);
-                    } else {
-                        // other receiver : maybe new class, new array and so on
-//                    System.err.printf("ERROR : unexpected captured symbol @ %s\n", expr.pos);
-//                    System.err.printf("receiver : %s\n", expr.receiver.get());
-//                    throw new NullPointerException();
+                if (thisClass || expr.receiver.isPresent() && expr.receiver.get().isThis) {
+                    if (expr.receiver.isEmpty()) {
+                        throw(new NullPointerException());
                     }
-                } else {
-                    ctx.capture(expr.symbol);
+                    ctx.capture(ctx.currentClass());
+                    expr.currLambdaScope = Optional.of(ctx.currentLambda().get().scope);
+                    System.err.printf("capture %s in %s\n", expr.receiver.get(), expr.currLambdaScope);
+                } else if (expr.receiver.isEmpty()) {
+                    if (!expr.isClassName) {
+                        ctx.capture(expr.symbol);
+                        expr.currLambdaScope = Optional.of(ctx.currentLambda().get().scope);
+                        if (!expr.currLambdaScope.get().capturedSymbol.contains(expr.symbol)) {
+                            expr.currLambdaScope = Optional.empty();
+                        }
+                        System.err.printf("capture %s in %s\n", expr.symbol, expr.currLambdaScope);
+                    }
                 }
             }
         }
+//        if (ctx.currentLambda().isPresent()) {
+//            if (!isStaticMethod) {
+//                if (thisClass) {
+//                    ctx.capture(ctx.currentClass());
+//                } else if (expr.receiver.isPresent()) {
+//                    if (expr.receiver.get().isThis) {
+//                        ctx.capture(ctx.currentClass());
+//                    } else if (expr.receiver.get() instanceof Tree.VarSel) {
+//                        ctx.capture(((Tree.VarSel) expr.receiver.get()).symbol);
+//                    } else {
+//                        // other receiver : maybe new class, new array and so on
+////                    System.err.printf("ERROR : unexpected captured symbol @ %s\n", expr.pos);
+////                    System.err.printf("receiver : %s\n", expr.receiver.get());
+////                    throw new NullPointerException();
+//                    }
+//                } else {
+//                    ctx.capture(expr.symbol);
+//                }
+//            }
+//        }
     }
 
     private boolean typeMethod(Tree.VarSel expr, boolean thisClass, String className, ScopeStack ctx, boolean requireStatic) {
@@ -730,6 +754,7 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
 
     @Override
     public void visitLambdaDef(Tree.LambdaDef lambda, ScopeStack ctx) {
+        lambda.currMethod = ctx.currentMethod();
         List<Type> argTypes = new ArrayList<>();
         for (var param : lambda.params) {
             argTypes.add(param.typeLit.get().type);
@@ -767,6 +792,13 @@ public class Typer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
             }
         }
         lambda.symbol.type = lambda.type;
+
+
+//        System.err.printf("%s\n", ctx.lambdaClass);
+        var methodSymbol = new MethodSymbol(lambda.pos.toString(), (FunType)lambda.type, new FormalScope(),
+                lambda.pos, new Tree.Modifiers(Tree.Modifiers.STATIC, lambda.pos), ctx.lambdaClass);
+        ctx.lambdaClass.scope.declare(methodSymbol);
+
         ctx.close();
         ctx.redeclare(lambda.symbol);
         loopLevel.pop();

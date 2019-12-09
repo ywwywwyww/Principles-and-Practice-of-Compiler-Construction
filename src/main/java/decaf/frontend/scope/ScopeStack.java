@@ -37,6 +37,8 @@ public class ScopeStack {
      */
     public final GlobalScope global;
 
+    public ClassSymbol lambdaClass;
+
     public ScopeStack(GlobalScope global) {
         this.global = global;
     }
@@ -245,7 +247,11 @@ public class ScopeStack {
                 if (((LambdaScope) scope).capturedSymbol.contains(symbol)) {
                     return;
                 }
-                ((LambdaScope) scope).capturedSymbol.add(symbol);
+                if (symbol.isClassSymbol()) {
+                    ((LambdaScope) scope).capturedSymbol.add(0, symbol);
+                } else {
+                    ((LambdaScope) scope).capturedSymbol.add(symbol);
+                }
             }
         }
     }

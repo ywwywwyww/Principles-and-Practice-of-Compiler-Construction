@@ -40,6 +40,10 @@ public abstract class TacInstr extends PseudoInstr {
      * Visitors of Tac instructions.
      */
     public interface Visitor {
+        default void visitCodes(Codes instr) {
+            visitOthers(instr);
+        }
+
         default void visitAssign(Assign instr) {
             visitOthers(instr);
         }
@@ -101,6 +105,25 @@ public abstract class TacInstr extends PseudoInstr {
         }
 
         default void visitOthers(TacInstr instr) {
+        }
+    }
+
+    public static class Codes extends TacInstr {
+        public final String str;
+
+        public Codes(String str) {
+            super(new Temp[]{}, new Temp[]{});
+            this.str = str;
+        }
+
+        @Override
+        public void accept(Visitor v) {
+            v.visitCodes(this);
+        }
+
+        @Override
+        public String toString() {
+            return str;
         }
     }
 

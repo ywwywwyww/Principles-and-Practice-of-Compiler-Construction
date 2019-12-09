@@ -1,5 +1,6 @@
 package decaf.frontend.typecheck;
 
+import com.sun.jdi.VoidType;
 import decaf.driver.Config;
 import decaf.driver.Phase;
 import decaf.driver.error.*;
@@ -8,12 +9,14 @@ import decaf.frontend.symbol.ClassSymbol;
 import decaf.frontend.symbol.LambdaSymbol;
 import decaf.frontend.symbol.MethodSymbol;
 import decaf.frontend.symbol.VarSymbol;
+import decaf.frontend.tree.Pos;
 import decaf.frontend.tree.Tree;
 import decaf.frontend.type.BuiltInType;
 import decaf.frontend.type.ClassType;
 import decaf.frontend.type.FunType;
 import decaf.frontend.type.Type;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +44,13 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     public void visitTopLevel(Tree.TopLevel program, ScopeStack ctx) {
         var classes = new TreeMap<String, Tree.ClassDef>();
 
+//        System.err.printf("visit top level\n");
+
+        // Create class for lambda symbol
+        var lambdaDefClass = new Tree.ClassDef(false, new Tree.Id("LAMBDA_FUNCTION", new Pos(0, 0)),
+                Optional.empty(), new ArrayList<>(), new Pos(0, 0));
+        program.classes.add(0, lambdaDefClass);
+
         // Check conflicting definitions. If any, ignore the redefined ones.
         for (var clazz : program.classes) {
             var earlier = classes.get(clazz.name);
@@ -67,7 +77,6 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         checkCycles(classes);
         // If so, return with errors.
         if (hasError()) return;
-
         // So far, class inheritance is well-formed, i.e. inheritance relations form a forest of trees. Now we need to
         // resolve every class definition, make sure that every member (variable/method) is well-typed.
         // Realizing that a class type can be used in the definition of a class member, either a variable or a method,
@@ -76,6 +85,10 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         // started yet. All class symbols are stored in the global scope.
         for (var clazz : classes.values()) {
             createClassSymbol(clazz, ctx.global);
+//            if (lambdaDefClass.symbol != null) {
+//                System.err.printf("%s\n", lambdaDefClass.symbol);
+//                System.err.printf("%s\n", lambdaDefClass.symbol.scope);
+//            }
         }
 
         // Now, we can resolve every class definition to fill in its class scope table. To check if the overriding
@@ -104,6 +117,11 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
         if (!found) {
             issue(new NoMainClassError());
         }
+
+//        System.err.printf("%s\n", lambdaDefClass.symbol);
+//        System.err.printf("%s\n", lambdaDefClass.symbol.scope);
+        program.lambdaClass = lambdaDefClass.symbol;
+//        System.err.printf("%s\n", program.lambdaClass);
     }
 
     /**
@@ -154,6 +172,7 @@ public class Namer extends Phase<Tree.TopLevel, Tree.TopLevel> implements TypeLi
     private void createClassSymbol(Tree.ClassDef clazz, GlobalScope global) {
         if (global.containsKey(clazz.name)) return;
 
+//        System.err.printf("create class symbol\n");
         if (clazz.parent.isPresent()) {
             createClassSymbol(clazz.superClass, global);
             var base = global.getClass(clazz.parent.get().name);

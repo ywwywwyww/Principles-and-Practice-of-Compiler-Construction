@@ -1,15 +1,19 @@
 package decaf.frontend.tacgen;
 
 import decaf.frontend.scope.ClassScope;
+import decaf.frontend.scope.LambdaScope;
 import decaf.frontend.symbol.ClassSymbol;
+import decaf.frontend.symbol.LambdaSymbol;
 import decaf.frontend.symbol.MethodSymbol;
 import decaf.frontend.symbol.VarSymbol;
 import decaf.frontend.tree.Tree;
 import decaf.frontend.tree.Visitor;
 import decaf.frontend.type.BuiltInType;
 import decaf.frontend.type.ClassType;
+import decaf.frontend.type.FunType;
 import decaf.lowlevel.instr.Temp;
 import decaf.lowlevel.label.Label;
+import decaf.lowlevel.label.FuncLabel;
 import decaf.lowlevel.tac.FuncVisitor;
 import decaf.lowlevel.tac.Intrinsic;
 import decaf.lowlevel.tac.RuntimeError;
@@ -244,6 +248,18 @@ public interface TacEmitter extends Visitor<FuncVisitor> {
         };
         expr.lhs.accept(this, mv);
         expr.rhs.accept(this, mv);
+        if (op == TacInstr.Binary.Op.DIV || op == TacInstr.Binary.Op.MOD) {
+            var zero = mv.visitLoad(0);
+            var error = mv.visitBinary(TacInstr.Binary.Op.EQU, expr.rhs.val, zero);
+            var handler = new Consumer<FuncVisitor>() {
+                @Override
+                public void accept(FuncVisitor v) {
+                    v.visitPrint(RuntimeError.DIVISION_BY_ZERO);
+                    v.visitIntrinsicCall(Intrinsic.HALT);
+                }
+            };
+            emitIfThen(error, handler, mv);
+        }
         expr.val = mv.visitBinary(op, expr.lhs.val, expr.rhs.val);
     }
 
@@ -251,7 +267,18 @@ public interface TacEmitter extends Visitor<FuncVisitor> {
     default void visitVarSel(Tree.VarSel expr, FuncVisitor mv) {
 //        System.err.printf("visit varsel @ %s\n", expr.pos);
 //        System.err.printf("%s\n", expr.symbol);
-        if (expr.symbol.isMethodSymbol()) {
+        if (expr.currLambdaScope.isPresent()) {
+            System.err.printf("%s %s %s\n", expr.currLambdaScope, expr.currLambdaScope.get().capturedSymbol, expr.symbol);
+            if (expr.receiver.isPresent()) {
+                System.err.printf("%s %s\n", expr.receiver.get(), expr.receiver.get().isThis);
+            }
+            if (expr.receiver.isPresent() && expr.receiver.get().isThis) {
+                expr.val = mv.visitLoadFrom(mv.getArgTemp(0),
+                        mv.ctx.getOffset(((ClassType)expr.receiver.get().type).name, expr.variable.name));
+            } else {
+                expr.val = mv.getArgTemp(expr.currLambdaScope.get().capturedSymbol.indexOf(expr.symbol));
+            }
+        } else if (expr.symbol.isMethodSymbol()) {
             if (expr.symbol.isMember()) {
 //                System.err.printf("%s %s\n", expr.receiver, expr.variable);
                 String className;
@@ -278,7 +305,7 @@ public interface TacEmitter extends Visitor<FuncVisitor> {
 
                 expr.val = emitFuncTypeVar(entry, capturedParams, mv);
             } else {
-                System.err.printf("error @ %s : varsel", expr.pos);
+//                System.err.printf("error @ %s : varsel", expr.pos);
                 throw(new NullPointerException());
             }
         } else {
@@ -319,7 +346,7 @@ public interface TacEmitter extends Visitor<FuncVisitor> {
     @Override
     default void visitCall(Tree.Call expr, FuncVisitor mv) {
         expr.expr.accept(this, mv);
-        System.err.printf("visit call @ %s\n", expr.pos);
+//        System.err.printf("visit call @ %s\n", expr.pos);
 //        if (expr.isArrayLength) { // special case for array.length()
 //            var array = expr.receiver.get();
 //            array.accept(this, mv);
@@ -331,7 +358,7 @@ public interface TacEmitter extends Visitor<FuncVisitor> {
         var temps = new ArrayList<Temp>();
         expr.args.forEach(arg -> temps.add(arg.val));
 
-        if (expr.expr.type.isVoidType()) {
+        if (((FunType)expr.expr.type).returnType.isVoidType()) {
             visitCall(expr.expr.val, temps, false, mv);
         } else {
             expr.val = visitCall(expr.expr.val, temps, true, mv);
@@ -352,6 +379,47 @@ public interface TacEmitter extends Visitor<FuncVisitor> {
 //                expr.val = mv.visitMemberCall(object.val, expr.symbol.owner.name, expr.symbol.name, temps, true);
 //            }
 //        }
+    }
+
+    @Override
+    default void visitLambdaDef(Tree.LambdaDef expr, FuncVisitor mv) {
+//        System.err.printf("visit lambda def , captured symbol : %s\n", expr.symbol.scope.capturedSymbol);
+        var className = "LAMBDA_FUNCTION";
+        FuncVisitor _mv =new FuncVisitor(new FuncLabel(className, expr.pos.toString()),
+                expr.params.size() + expr.symbol.scope.capturedSymbol.size(), mv.ctx);
+        var i = expr.symbol.scope.capturedSymbol.size();
+        for (var param : expr.params) {
+            param.symbol.temp = _mv.getArgTemp(i);
+            i++;
+        }
+
+        if (expr.kind == Tree.LambdaDef.Kind.EXPR) {
+            expr.expr.accept(this, _mv);
+            _mv.visitReturn(expr.expr.val);
+        } else {
+            expr.block.accept(this, _mv);
+        }
+        _mv.visitEnd();
+
+        var vtbl = mv.visitLoadVTable(className);
+//                System.err.printf("%s %s\n", className, expr.symbol.name);
+        var entry = mv.visitLoadFrom(vtbl, mv.ctx.getOffset(className, expr.pos.toString()));
+        List<Temp> capturedParams = new ArrayList<>();
+        for (var param : expr.symbol.scope.capturedSymbol) {
+//            System.err.printf("%s\n", expr.currMethod);
+            if (param.isClassSymbol()) {
+                capturedParams.add(mv.getArgTemp(0));
+//                System.err.printf("1\n");
+            } else if (expr.currMethod.isLambdaSymbol() &&
+                    ((LambdaSymbol)expr.currMethod).scope.capturedSymbol.indexOf(param) != -1) {
+                capturedParams.add(mv.getArgTemp(expr.symbol.scope.capturedSymbol.indexOf(param)));
+//                System.err.printf("2\n");
+            } else {
+                capturedParams.add(((VarSymbol) param).temp);
+//                System.err.printf("3\n");
+            }
+        }
+        expr.val = emitFuncTypeVar(entry, capturedParams , mv);
     }
 
     @Override
@@ -440,7 +508,7 @@ public interface TacEmitter extends Visitor<FuncVisitor> {
     }
 
     private Temp emitFuncTypeVar(Temp func, List<Temp> capturedParams, FuncVisitor mv) {
-        System.err.printf("captured params: %s\n", capturedParams);
+//        System.err.printf("captured params: %s\n", capturedParams);
         var capturedParamsNum = capturedParams.size();
         var length = mv.visitLoad(capturedParamsNum);
         var units = mv.visitBinary(TacInstr.Binary.Op.ADD, length, mv.visitLoad(2));

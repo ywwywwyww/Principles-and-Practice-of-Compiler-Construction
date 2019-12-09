@@ -29,4 +29,9 @@ public final class LambdaSymbol extends Symbol {
     public boolean isMember() {
         return definedIn.isClassScope();
     }
+
+    @Override
+    public boolean isLambdaSymbol() {
+        return true;
+    }
 }

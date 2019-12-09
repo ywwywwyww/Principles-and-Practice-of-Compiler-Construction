@@ -458,6 +458,7 @@ public final class Simulator {
          * @return the starting address of the allocated memory block
          */
         public int alloc(int size) {
+//            System.err.printf("line : %d , size : %d\n", _pc, size);
             if (size < 0) {
                 throw new Error("Memory allocation error: negative size " + size);
             }
@@ -476,6 +477,7 @@ public final class Simulator {
         }
 
         private Block checkHeapAccess(int base, int offset) {
+//            System.err.printf("line : %d base : %d offset : %d\n", _pc, base, offset);
             if (base <= 0) {
                 throw new Error("Null pointer exception");
             }
@@ -491,7 +493,7 @@ public final class Simulator {
             base /= 4;
             offset /= 4;
             if (base >= currentSize) {
-                throw new Error(String.format("Memory access out of bound %d", base * 4));
+                throw new Error(String.format("Memory access out of bound %d , line : %d", base * 4, _pc));
             }
             Block temp = new Block();
             temp.start = base;
@@ -499,7 +501,7 @@ public final class Simulator {
             Block block = index >= 0 ? heap.get(index) : heap.get(-index - 2);
             int accessIndex = base - block.start + offset;
             if (accessIndex < 0 || accessIndex >= block.mem.length) {
-                throw new Error(String.format("Memory access out of bound %d", base * 4 + offset * 4));
+                throw new Error(String.format("Memory access out of bound %d , line : %d", base * 4 + offset * 4, _pc));
             }
             return block;
         }

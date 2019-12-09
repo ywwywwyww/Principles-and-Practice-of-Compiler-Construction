@@ -21,7 +21,7 @@ public class TacGen extends Phase<Tree.TopLevel, TacProg> implements TacEmitter 
 
     @Override
     public TacProg transform(Tree.TopLevel tree) {
-        System.err.printf("tac gen start!\n");
+//        System.err.printf("tac gen start!\n");
         // Create class info.
         var info = new ArrayList<ClassInfo>();
         for (var clazz : tree.classes) {
@@ -39,22 +39,22 @@ public class TacGen extends Phase<Tree.TopLevel, TacProg> implements TacEmitter 
 //                if (method.symbol.isMain()) {
 //                    mv = pw.visitMainMethod();
 //                } else {
-                    // Remember calling convention: pass `this` (if non-static) as an extra argument, via reversed temps.
-                    var numArgs = method.params.size();
-                    var i = 0;
-                    if (!method.isStatic()) {
-                        numArgs++;
-                        i++;
-                    }
+                // Remember calling convention: pass `this` (if non-static) as an extra argument, via reversed temps.
+                var numArgs = method.params.size();
+                var i = 0;
+                if (!method.isStatic()) {
+                    numArgs++;
+                    i++;
+                }
 
-                    mv = pw.visitFunc(clazz.name, method.name, numArgs);
-                    for (var param : method.params) {
-                        param.symbol.temp = mv.getArgTemp(i);
-                        i++;
-                    }
+                mv = pw.visitFunc(clazz.name, method.name, numArgs);
+                for (var param : method.params) {
+                    param.symbol.temp = mv.getArgTemp(i);
+                    i++;
+                }
 //                }
-
                 method.body.ifPresent(objects -> objects.accept(this, mv));
+//                mv.func.add(new TacInstr.Codes("_T1111 = FUNCTION<A.a>"));
                 mv.visitEnd();
             }
         }

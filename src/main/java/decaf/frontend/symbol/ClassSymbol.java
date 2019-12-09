@@ -32,6 +32,7 @@ public final class ClassSymbol extends Symbol {
 
     public ClassSymbol(String name, ClassType type, ClassScope scope, Pos pos, Tree.Modifiers modifiers) {
         super(name, type, pos);
+//        System.err.printf("create class symbol: name: %s , scope: %s\n", name, scope);
         this.parentSymbol = Optional.empty();
         this.scope = scope;
         this.type = type;
@@ -43,6 +44,7 @@ public final class ClassSymbol extends Symbol {
     public ClassSymbol(String name, ClassSymbol parentSymbol, ClassType type, ClassScope scope, Pos pos,
                        Tree.Modifiers modifiers) {
         super(name, type, pos);
+//        System.err.printf("create class symbol: name: %s , scope: %s\n", name, scope);
         this.parentSymbol = Optional.of(parentSymbol);
         this.scope = scope;
         this.type = type;

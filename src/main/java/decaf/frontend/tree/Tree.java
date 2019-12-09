@@ -1,6 +1,7 @@
 package decaf.frontend.tree;
 
 import decaf.frontend.scope.GlobalScope;
+import decaf.frontend.scope.LambdaScope;
 import decaf.frontend.scope.LocalScope;
 import decaf.frontend.symbol.*;
 import decaf.frontend.type.FunType;
@@ -32,6 +33,7 @@ public abstract class Tree {
         // For type check
         public GlobalScope globalScope;
         public ClassSymbol mainClass;
+        public ClassSymbol lambdaClass;
 
         public TopLevel(List<ClassDef> classes, Pos pos) {
             super(Kind.TOP_LEVEL, "TopLevel", pos);
@@ -253,6 +255,7 @@ public abstract class Tree {
          */
         public LocalScope exprScope;
         public LambdaSymbol symbol;
+        public Symbol currMethod;
 
         public LambdaDef(LambdaDef.Kind kind, List<LocalVarDef> params, Expr expr, Block block, Pos pos) {
             super(Tree.Kind.LAMBDA_DEF, "Lambda", pos);
@@ -1155,6 +1158,7 @@ public abstract class Tree {
         public Symbol symbol;
         public boolean isClassName = false;
         public boolean isArrayLength = false;
+        public Optional<LambdaScope> currLambdaScope; // Only used if it's a captured symbol
 
         public VarSel(Optional<Expr> receiver, Id variable, Pos pos) {
 //            super(Kind.VAR_SEL, "VarSel", pos);
@@ -1162,6 +1166,7 @@ public abstract class Tree {
             this.receiver = receiver;
             this.variable = variable;
             this.name = variable.name;
+            currLambdaScope = Optional.empty();
         }
 
         public VarSel(Expr receiver, Id variable, Pos pos) {
