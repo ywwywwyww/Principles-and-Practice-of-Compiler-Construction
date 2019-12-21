@@ -108,17 +108,20 @@ public final class Simulator {
         _halt = false;
 
         while (!_call_stack.isEmpty()) {
-            if (count >= 100000) {
-                throw new Error("Max instruction limitation 10,0000 exceeds, maybe your program cannot terminate?");
+            int max_instr_cnt = 1000000000;
+            if (count >= max_instr_cnt) {
+                throw new Error("Max instruction limitation " + max_instr_cnt + " exceeds, maybe your program cannot terminate?");
             }
 
             if (_halt) {
+                System.err.print("Total instruction num : " + count + "\n");
                 return;
             }
 
             _instrs.get(_pc).accept(executor);
             count++;
         }
+        System.err.print("Total instruction num : " + count + "\n");
     }
 
     /**

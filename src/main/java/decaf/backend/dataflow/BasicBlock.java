@@ -3,6 +3,7 @@ package decaf.backend.dataflow;
 import decaf.lowlevel.instr.PseudoInstr;
 import decaf.lowlevel.instr.Temp;
 import decaf.lowlevel.label.Label;
+import decaf.lowlevel.tac.TacInstr;
 
 import java.util.*;
 

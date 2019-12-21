@@ -1,6 +1,7 @@
 package decaf.backend.dataflow;
 
 import decaf.lowlevel.instr.PseudoInstr;
+import decaf.lowlevel.label.Label;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -28,9 +29,12 @@ public class CFG<I extends PseudoInstr> implements Iterable<BasicBlock<I>> {
     // fst: prev, snd: succ
     private List<Pair<Set<Integer>, Set<Integer>>> links;
 
-    CFG(List<BasicBlock<I>> nodes, List<Pair<Integer, Integer>> edges) {
+    public Optional<Label> funcLabel;
+
+    CFG(List<BasicBlock<I>> nodes, List<Pair<Integer, Integer>> edges, Label funcLabel) {
         this.nodes = nodes;
         this.edges = edges;
+        this.funcLabel = Optional.ofNullable(funcLabel);
 
         links = new ArrayList<>();
         for (var i = 0; i < nodes.size(); i++) {

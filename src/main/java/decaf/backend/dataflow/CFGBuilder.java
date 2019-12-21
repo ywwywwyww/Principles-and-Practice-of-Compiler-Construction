@@ -19,9 +19,11 @@ public class CFGBuilder<I extends PseudoInstr> {
      * @return corresponding control flow graph
      */
     public CFG<I> buildFrom(List<I> seq) {
+        Label funcLabel = null;
         for (var item : seq) {
             if (item.isLabel()) {
                 if (item.label.isFunc()) {
+                    funcLabel = item.label;
                     // ignore function label
                 } else {
                     // close the previous basic block
@@ -77,7 +79,7 @@ public class CFGBuilder<I extends PseudoInstr> {
             }
         }
 
-        return new CFG<>(bbs, edges);
+        return new CFG<>(bbs, edges, funcLabel);
     }
 
     private List<BasicBlock<I>> bbs = new ArrayList<>();
