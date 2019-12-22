@@ -31,26 +31,36 @@ public class Optimizer extends Phase<TacProg, TacProg> {
             // Build CFG
             var CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
 
+            boolean deadCodeElimination = true;
+            boolean copyPropatation = true;
+            boolean constantPropagation = true;
+
             // Optimize
             boolean success = true;
             while(success) {
                 success = false;
 
+                if (deadCodeElimination) {
 //                System.err.println("dead code elimination");
-                while ((new DeadCodeEliminator()).optimize(CFG)) {
-                    success = true;
+                    while ((new DeadCodeEliminator()).optimize(CFG)) {
+                        success = true;
+                    }
                 }
 
+                if (copyPropatation) {
 //                System.err.println("copy propagation");
-                while ((new CopyPropagator()).optimize(CFG)) {
-                    success = true;
+                    while ((new CopyPropagator()).optimize(CFG)) {
+                        success = true;
+                    }
                 }
 
+                if (constantPropagation) {
 //                System.err.println("constant propagation");
-                while ((new ConstantPropagator()).optimize(CFG)) {
-                    success = true;
-                    func.instrSeq = output(CFG);
-                    CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
+                    while ((new ConstantPropagator()).optimize(CFG)) {
+                        success = true;
+                        func.instrSeq = output(CFG);
+                        CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
+                    }
                 }
             }
 
