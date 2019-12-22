@@ -15,6 +15,8 @@ public class Loc<I extends PseudoInstr> {
     public Set<Temp> liveOut;
     public Map<Temp, ConstantPropagator.Constant> valIn;
     public Map<Temp, ConstantPropagator.Constant> valOut;
+    public Map<Temp, Temp> copyIn;
+    public Map<Temp, Temp> copyOut;
 
     Loc(I instr) {
         this.instr = instr;

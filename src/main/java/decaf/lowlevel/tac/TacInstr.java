@@ -553,7 +553,7 @@ public abstract class TacInstr extends PseudoInstr {
      * </pre>
      */
     public static class Memo extends TacInstr {
-        final String msg;
+        public final String msg;
 
         public Memo(String msg) {
             super(new Temp[]{}, new Temp[]{});

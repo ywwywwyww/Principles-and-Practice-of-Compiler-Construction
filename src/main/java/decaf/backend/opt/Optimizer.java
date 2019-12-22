@@ -29,7 +29,7 @@ public class Optimizer extends Phase<TacProg, TacProg> {
         for (var func : input.funcs) {
 
             // Build CFG
-            var CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs);
+            var CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
 
             // Optimize
             boolean success = true;
@@ -50,7 +50,7 @@ public class Optimizer extends Phase<TacProg, TacProg> {
                 while ((new ConstantPropagator()).optimize(CFG)) {
                     success = true;
                     func.instrSeq = output(CFG);
-                    CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs);
+                    CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
                 }
             }
 

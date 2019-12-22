@@ -13,7 +13,7 @@ import java.util.*;
  */
 public class CFGBuilder<I extends PseudoInstr> {
     public CFG<I> buildFrom(List<I> seq) {
-        return buildFrom(seq, 0);
+        return buildFrom(seq, 0, 0);
     }
 
     /**
@@ -23,7 +23,7 @@ public class CFGBuilder<I extends PseudoInstr> {
      * @param numArgs num of args of function
      * @return corresponding control flow graph
      */
-    public CFG<I> buildFrom(List<I> seq, int numArgs) {
+    public CFG<I> buildFrom(List<I> seq, int numArgs, int tempUsed) {
         Label funcLabel = null;
         for (var item : seq) {
             if (item.isLabel()) {
@@ -84,7 +84,7 @@ public class CFGBuilder<I extends PseudoInstr> {
             }
         }
 
-        return new CFG<>(bbs, edges, funcLabel, numArgs);
+        return new CFG<>(bbs, edges, funcLabel, numArgs, tempUsed);
     }
 
     private List<BasicBlock<I>> bbs = new ArrayList<>();
