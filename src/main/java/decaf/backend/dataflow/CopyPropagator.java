@@ -48,7 +48,7 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
         }
 
         for (var bb : graph.nodes) {
-            if (optmizeFor(bb)) {
+            if (optimizeFor(bb)) {
                 success = true;
             }
         }
@@ -70,7 +70,7 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
         }
     }
 
-    boolean optmizeFor(BasicBlock<TacInstr> bb) {
+    boolean optimizeFor(BasicBlock<TacInstr> bb) {
         Map<Temp, Temp> copy = new TreeMap<>(bb.copyIn);
         cp.copy = copy;
         cp.changed = false;

@@ -115,6 +115,22 @@ public class ConstantPropagator implements CFGOptimizer<TacInstr> {
                     } else {
                         val.put(((TacInstr.Binary) loc.instr).dst, Constant.NAC);
                     }
+                } else if (((TacInstr.Binary) loc.instr).lhs.equals(((TacInstr.Binary) loc.instr).rhs)) {
+                    int res = switch (((TacInstr.Binary) loc.instr).op) {
+                        case SUB -> 0;
+                        case DIV -> 1;
+                        case MOD -> 0;
+                        case EQU -> 1;
+                        case NEQ -> 0;
+                        case GEQ -> 1;
+                        case GTR -> 0;
+                        case LEQ -> 1;
+                        case LES -> 0;
+                        default -> -1;
+                    };
+                    if (res != -1) {
+                        val.put(((TacInstr.Binary) loc.instr).dst, new Constant(res));
+                    }
                 }
             } else if (loc.instr instanceof TacInstr.LoadImm4) {
                 val.put(((TacInstr.LoadImm4) loc.instr).dst, new Constant(((TacInstr.LoadImm4) loc.instr).value));
