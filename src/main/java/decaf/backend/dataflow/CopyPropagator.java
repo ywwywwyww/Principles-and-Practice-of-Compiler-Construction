@@ -5,6 +5,7 @@ import decaf.lowlevel.tac.TacInstr;
 public class CopyPropagator implements CFGOptimizer<TacInstr> {
     @Override
     public boolean optimize(CFG<TacInstr> graph) {
+        // TODO
         return false;
     }
 }

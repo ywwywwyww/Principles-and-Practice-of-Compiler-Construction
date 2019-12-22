@@ -101,7 +101,9 @@ public class DeadCodeEliminator implements CFGOptimizer<TacInstr> {
             loc.liveIn = new TreeSet<>(liveOut);
 
             var written = loc.instr.getWritten();
-            if (!written.isEmpty() && !loc.liveOut.containsAll(written)) {
+            if (loc.instr instanceof TacInstr.Assign &&
+                    ((TacInstr.Assign) loc.instr).src == ((TacInstr.Assign) loc.instr).dst) {
+            } else if (!written.isEmpty() && !loc.liveOut.containsAll(written)) {
                 if (loc.instr instanceof TacInstr.DirectCall) {
                     var instr2 = new TacInstr.DirectCall(((TacInstr.DirectCall) loc.instr).entry);
                     var loc2 = new Loc<TacInstr>(instr2);
