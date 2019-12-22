@@ -38,7 +38,9 @@ public class DeadCodeEliminator implements CFGOptimizer<TacInstr> {
         } while (changed);
 
         for (var bb : graph.nodes) {
-            success = success || analyzeLivenessForEachLocIn(bb);
+            if (analyzeLivenessForEachLocIn(bb)) {
+                success = true;
+            }
         }
         return success;
     }

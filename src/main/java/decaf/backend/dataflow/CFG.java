@@ -31,10 +31,13 @@ public class CFG<I extends PseudoInstr> implements Iterable<BasicBlock<I>> {
 
     public Optional<Label> funcLabel;
 
-    CFG(List<BasicBlock<I>> nodes, List<Pair<Integer, Integer>> edges, Label funcLabel) {
+    public int numArgs;
+
+    CFG(List<BasicBlock<I>> nodes, List<Pair<Integer, Integer>> edges, Label funcLabel, int numArgs) {
         this.nodes = nodes;
         this.edges = edges;
         this.funcLabel = Optional.ofNullable(funcLabel);
+        this.numArgs = numArgs;
 
         links = new ArrayList<>();
         for (var i = 0; i < nodes.size(); i++) {

@@ -12,13 +12,18 @@ import java.util.*;
  * @param <I> type of instructions
  */
 public class CFGBuilder<I extends PseudoInstr> {
+    public CFG<I> buildFrom(List<I> seq) {
+        return buildFrom(seq, 0);
+    }
+
     /**
      * Build a control flow graph from a sequence of instructions.
      *
      * @param seq instruction sequence
+     * @param numArgs num of args of function
      * @return corresponding control flow graph
      */
-    public CFG<I> buildFrom(List<I> seq) {
+    public CFG<I> buildFrom(List<I> seq, int numArgs) {
         Label funcLabel = null;
         for (var item : seq) {
             if (item.isLabel()) {
@@ -79,7 +84,7 @@ public class CFGBuilder<I extends PseudoInstr> {
             }
         }
 
-        return new CFG<>(bbs, edges, funcLabel);
+        return new CFG<>(bbs, edges, funcLabel, numArgs);
     }
 
     private List<BasicBlock<I>> bbs = new ArrayList<>();

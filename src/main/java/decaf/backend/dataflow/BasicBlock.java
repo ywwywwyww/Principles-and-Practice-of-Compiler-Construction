@@ -125,4 +125,8 @@ public class BasicBlock<I extends PseudoInstr> implements Iterable<Loc<I>> {
     public Set<Temp> liveIn;
 
     public Set<Temp> liveOut;
+
+    public Map<Temp, ConstantPropagator.Constant> valIn;
+
+    public Map<Temp, ConstantPropagator.Constant> valOut;
 }
