@@ -83,6 +83,7 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
             loc.instr = cp.res;
             if (loc.instr instanceof TacInstr.Assign) {
                 copy.put(((TacInstr.Assign) loc.instr).dst, ((TacInstr.Assign) loc.instr).src);
+//                System.err.println(loc.instr);
             }
             for (var key : new TreeSet<>(copy.keySet())) {
                 if (loc.instr.getWritten().contains(copy.get(key))) {
@@ -131,7 +132,13 @@ class TacInstrCopyPropagator implements TacInstr.Visitor {
 
     @Override
     public void visitMemory(TacInstr.Memory instr) {
-        res = new TacInstr.Memory(instr.op, instr.dst, find(instr.base), instr.offset);
+        res = new TacInstr.Memory(instr.op,
+                instr.op == TacInstr.Memory.Op.STORE ? find(instr.dst) : instr.dst, find(instr.base), instr.offset);
+    }
+
+    @Override
+    public void visitReturn(TacInstr.Return instr) {
+        res = instr.value.map(temp -> new TacInstr.Return(find(temp))).orElseGet(TacInstr.Return::new);
     }
 
     @Override
