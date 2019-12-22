@@ -177,20 +177,37 @@ public class ConstantPropagator implements CFGOptimizer<TacInstr> {
                             case DIV -> (rhs == 0 ? 0 : lhs / rhs);
                             case MOD -> (rhs == 0 ? 0 : lhs % rhs);
                             case EQU -> (lhs == rhs ? 1 : 0);
+                            case NEQ -> (lhs != rhs ? 1 : 0);
                             case GEQ -> (lhs >= rhs ? 1 : 0);
                             case GTR -> (lhs > rhs ? 1 : 0);
                             case LEQ -> (lhs <= rhs ? 1 : 0);
                             case LES -> (lhs < rhs ? 1 : 0);
-                            case NEQ -> (lhs != rhs ? 1 : 0);
                             case LOR -> (lhs != 0 || rhs != 0 ? 1 : 0);
                             case LAND -> (lhs != 0 && rhs != 0 ? 1 : 0);
                         };
                         val.put(((TacInstr.Binary) loc.instr).dst, new Constant(res));
-                        loc.instr = new TacInstr.LoadImm4(((TacInstr.Binary) loc.instr).dst,
-                                res);
+                        loc.instr = new TacInstr.LoadImm4(((TacInstr.Binary) loc.instr).dst, res);
                         changed = true;
                     } else {
                         val.put(((TacInstr.Binary) loc.instr).dst, Constant.NAC);
+                    }
+                } else if (((TacInstr.Binary) loc.instr).lhs.equals(((TacInstr.Binary) loc.instr).rhs)) {
+                    int res = switch (((TacInstr.Binary) loc.instr).op) {
+                        case SUB -> 0;
+                        case DIV -> 1;
+                        case MOD -> 0;
+                        case EQU -> 1;
+                        case NEQ -> 0;
+                        case GEQ -> 1;
+                        case GTR -> 0;
+                        case LEQ -> 1;
+                        case LES -> 0;
+                        default -> -1;
+                    };
+                    if (res != -1) {
+                        val.put(((TacInstr.Binary) loc.instr).dst, new Constant(res));
+                        loc.instr = new TacInstr.LoadImm4(((TacInstr.Binary) loc.instr).dst, res);
+                        changed = true;
                     }
                 }
             } else if (loc.instr instanceof TacInstr.LoadImm4) {

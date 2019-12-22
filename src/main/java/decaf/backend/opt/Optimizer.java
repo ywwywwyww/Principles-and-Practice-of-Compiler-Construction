@@ -45,13 +45,13 @@ public class Optimizer extends Phase<TacProg, TacProg> {
                 while ((new CopyPropagator()).optimize(CFG)) {
                     success = true;
                 }
-
-//                System.err.println("constant propagation");
-                while ((new ConstantPropagator()).optimize(CFG)) {
-                    success = true;
-                    func.instrSeq = output(CFG);
-                    CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
-                }
+//
+////                System.err.println("constant propagation");
+//                while ((new ConstantPropagator()).optimize(CFG)) {
+//                    success = true;
+//                    func.instrSeq = output(CFG);
+//                    CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
+//                }
             }
 
             (new LivenessAnalyzer<TacInstr>()).accept(CFG);
