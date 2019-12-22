@@ -32,6 +32,10 @@ public final class Simulator {
      * @param program TAC program
      */
     public void execute(TacProg program) {
+        for (var func : program.funcs) {
+            func.instrSeq.removeIf(instr -> instr instanceof TacInstr.Memo);
+        }
+
         // Initialize
         _memory = new Memory();
         _string_pool = new StringPool();

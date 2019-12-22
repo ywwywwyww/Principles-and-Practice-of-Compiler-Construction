@@ -41,7 +41,7 @@ public class BasicBlock<I extends PseudoInstr> implements Iterable<Loc<I>> {
     /**
      * List of locations (i.e. instructions with liveness info).
      */
-    public final List<Loc<I>> locs;
+    public List<Loc<I>> locs;
 
     public BasicBlock(Kind kind, int id, Optional<Label> label, List<Loc<I>> locs) {
         this.kind = kind;
@@ -72,6 +72,24 @@ public class BasicBlock<I extends PseudoInstr> implements Iterable<Loc<I>> {
             public Loc<I> next() {
                 var loc = locs.get(i);
                 i--;
+                return loc;
+            }
+        };
+    }
+
+    public Iterator<Loc<I>> forwardIterator() {
+        return new Iterator<>() {
+            private int i = 0;
+
+            @Override
+            public boolean hasNext() {
+                return i != locs.size();
+            }
+
+            @Override
+            public Loc<I> next() {
+                var loc = locs.get(i);
+                i++;
                 return loc;
             }
         };

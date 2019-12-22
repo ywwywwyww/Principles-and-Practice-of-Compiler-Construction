@@ -2,6 +2,7 @@ package decaf.backend.opt;
 
 import decaf.backend.dataflow.CFG;
 import decaf.backend.dataflow.CFGBuilder;
+import decaf.backend.dataflow.DeadCodeEliminator;
 import decaf.backend.dataflow.LivenessAnalyzer;
 import decaf.driver.Config;
 import decaf.driver.Phase;
@@ -13,6 +14,7 @@ import decaf.lowlevel.tac.TacProg;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.TreeSet;
 
 /**
  * TAC optimization phase: optimize a TAC program.
@@ -31,10 +33,9 @@ public class Optimizer extends Phase<TacProg, TacProg> {
             // Build CFG
             var CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq);
 
-            // Analyze
-            (new LivenessAnalyzer<TacInstr>()).accept(CFG);
-
-            // TODO: Optimize
+            // Analyze & Optimize
+            while((new DeadCodeEliminator()).optimize(CFG))
+                ;
 
             // Output instr
             func.instrSeq = new ArrayList<>();
@@ -42,7 +43,12 @@ public class Optimizer extends Phase<TacProg, TacProg> {
             for (var node : CFG.nodes) {
                 node.label.ifPresent(label -> func.instrSeq.add(new TacInstr.Mark(label)));
                 for (var loc : node.locs) {
+                    func.instrSeq.add(new TacInstr.Memo(""));
+                    func.instrSeq.add(new TacInstr.Memo("live in : " + loc.liveIn.toString()));
                     func.instrSeq.add(loc.instr);
+                    func.instrSeq.add(new TacInstr.Memo("written : " + loc.instr.getWritten().toString()));
+                    func.instrSeq.add(new TacInstr.Memo("live out : " + loc.liveOut.toString()));
+                    func.instrSeq.add(new TacInstr.Memo(""));
                 }
             }
         }
