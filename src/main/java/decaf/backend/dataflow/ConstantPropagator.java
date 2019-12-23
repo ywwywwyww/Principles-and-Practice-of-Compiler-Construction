@@ -172,8 +172,7 @@ public class ConstantPropagator implements CFGOptimizer<TacInstr> {
                             case LNOT -> (operand == 0 ? 1 : 0);
                         };
                         val.put(((TacInstr.Unary) loc.instr).dst, new Constant(res));
-                        loc.instr = new TacInstr.LoadImm4(((TacInstr.Unary) loc.instr).dst,
-                                res);
+                        loc.instr = new TacInstr.LoadImm4(((TacInstr.Unary) loc.instr).dst, res);
                         changed = true;
                     } else {
                         val.put(((TacInstr.Unary) loc.instr).dst, Constant.NAC);

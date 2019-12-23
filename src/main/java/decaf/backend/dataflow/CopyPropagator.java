@@ -5,6 +5,9 @@ import decaf.lowlevel.tac.TacInstr;
 
 import java.util.*;
 
+/**
+ * Perform copy propagation on a control flow graph.
+ */
 public class CopyPropagator implements CFGOptimizer<TacInstr> {
     @Override
     public boolean optimize(CFG<TacInstr> graph) {
@@ -127,7 +130,7 @@ class TacInstrCopyPropagator implements TacInstr.Visitor {
 
     @Override
     public void visitParm(TacInstr.Parm instr) {
-        res = new TacInstr.Parm(instr.value);
+        res = new TacInstr.Parm(find(instr.value));
     }
 
     @Override
