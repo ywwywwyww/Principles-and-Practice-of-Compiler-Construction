@@ -207,7 +207,7 @@ public final class Simulator {
         /**
          * Save: which temp to write the return value.
          */
-        Temp retValDst;
+        Optional<Temp> retValDst;
 
         /**
          * Save: the address of the next instruction to be executed once the function call returns.
@@ -336,7 +336,9 @@ public final class Simulator {
             // Recover caller's state, if the caller exists
             if (!_call_stack.isEmpty()) {
                 var frame = _call_stack.peek();
-                value.ifPresent(v -> { if (frame.retValDst != null) frame.array[frame.retValDst.index] = v; });
+                value.ifPresent(v -> {
+                    frame.retValDst.ifPresent(temp -> frame.array[temp.index] = v);
+                });
                 _pc = _call_stack.peek().pcNext;
             } // else: the entire program terminates
         }
@@ -354,7 +356,7 @@ public final class Simulator {
             // Save caller's state
             var frame = _call_stack.peek();
             frame.pcNext = _pc + 1;
-            frame.retValDst = instr.dst.orElse(null);
+            frame.retValDst = instr.dst;
 
             // Create callee's frame and invoke
             var addr = frame.array[instr.entry.index];
@@ -368,7 +370,7 @@ public final class Simulator {
             // Save caller's state
             var frame = _call_stack.peek();
             frame.pcNext = _pc + 1;
-            frame.retValDst = instr.dst.orElse(null);
+            frame.retValDst = instr.dst;
 
             // Create callee's frame and invoke
             if (instr.entry.isIntrinsic()) { // special: call intrinsic
