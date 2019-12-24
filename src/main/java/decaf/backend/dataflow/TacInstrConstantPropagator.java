@@ -52,33 +52,28 @@ public class TacInstrConstantPropagator implements TacInstr.Visitor {
     @Override
     public void visitBinary(TacInstr.Binary instr) {
         resInstr = instr;
-        if (val.containsKey(instr.lhs) &&
-                val.containsKey(instr.rhs)) {
-            if (val.get(instr.lhs).isVAL() &&
-                    val.get(instr.rhs).isVAL()) {
-                int lhs = val.get(instr.lhs).val;
-                int rhs = val.get(instr.rhs).val;
-                int res = switch (instr.op) {
-                    case ADD -> lhs + rhs;
-                    case SUB -> lhs - rhs;
-                    case MUL -> lhs * rhs;
-                    case DIV -> (rhs == 0 ? 0 : lhs / rhs);
-                    case MOD -> (rhs == 0 ? 0 : lhs % rhs);
-                    case EQU -> (lhs == rhs ? 1 : 0);
-                    case NEQ -> (lhs != rhs ? 1 : 0);
-                    case GEQ -> (lhs >= rhs ? 1 : 0);
-                    case GTR -> (lhs > rhs ? 1 : 0);
-                    case LEQ -> (lhs <= rhs ? 1 : 0);
-                    case LES -> (lhs < rhs ? 1 : 0);
-                    case LOR -> (lhs != 0 || rhs != 0 ? 1 : 0);
-                    case LAND -> (lhs != 0 && rhs != 0 ? 1 : 0);
-                };
-                val.put(instr.dst, new Constant(res));
-                resInstr = new TacInstr.LoadImm4(instr.dst, res);
-                changed = true;
-            } else {
-                val.put(instr.dst, Constant.NAC);
-            }
+        if (val.containsKey(instr.lhs) && val.containsKey(instr.rhs) && val.get(instr.lhs).isVAL() &&
+                val.get(instr.rhs).isVAL()) {
+            int lhs = val.get(instr.lhs).val;
+            int rhs = val.get(instr.rhs).val;
+            int res = switch (instr.op) {
+                case ADD -> lhs + rhs;
+                case SUB -> lhs - rhs;
+                case MUL -> lhs * rhs;
+                case DIV -> (rhs == 0 ? 0 : lhs / rhs);
+                case MOD -> (rhs == 0 ? 0 : lhs % rhs);
+                case EQU -> (lhs == rhs ? 1 : 0);
+                case NEQ -> (lhs != rhs ? 1 : 0);
+                case GEQ -> (lhs >= rhs ? 1 : 0);
+                case GTR -> (lhs > rhs ? 1 : 0);
+                case LEQ -> (lhs <= rhs ? 1 : 0);
+                case LES -> (lhs < rhs ? 1 : 0);
+                case LOR -> (lhs != 0 || rhs != 0 ? 1 : 0);
+                case LAND -> (lhs != 0 && rhs != 0 ? 1 : 0);
+            };
+            val.put(instr.dst, new Constant(res));
+            resInstr = new TacInstr.LoadImm4(instr.dst, res);
+            changed = true;
         } else if (instr.lhs.equals(instr.rhs)) {
             int res = switch (instr.op) {
                 case SUB -> 0;
@@ -96,9 +91,103 @@ public class TacInstrConstantPropagator implements TacInstr.Visitor {
                 val.put(instr.dst, new Constant(res));
                 resInstr = new TacInstr.LoadImm4(instr.dst, res);
                 changed = true;
+            } else {
+                val.put(instr.dst, Constant.NAC);
             }
         } else {
-            val.put(instr.dst, Constant.NAC);
+            switch (instr.op) {
+                case ADD:
+                    if (val.containsKey(instr.lhs) && val.get(instr.lhs).isVAL() && val.get(instr.lhs).val == 0) {
+                        val.put(instr.dst, Constant.NAC);
+                        resInstr = new TacInstr.Assign(instr.dst, instr.rhs);
+                        changed = true;
+                    } else if (val.containsKey(instr.rhs) && val.get(instr.rhs).isVAL() && val.get(instr.rhs).val == 0) {
+                        val.put(instr.dst, Constant.NAC);
+                        resInstr = new TacInstr.Assign(instr.dst, instr.lhs);
+                        changed = true;
+                    } else {
+                        val.put(instr.dst, Constant.NAC);
+                    }
+                    break;
+                case SUB:
+                    if (val.containsKey(instr.lhs) && val.get(instr.lhs).isVAL() && val.get(instr.lhs).val == 0) {
+                        val.put(instr.dst, Constant.NAC);
+                        resInstr = new TacInstr.Unary(TacInstr.Unary.Op.NEG, instr.dst, instr.rhs);
+                        changed = true;
+                    } else if (val.containsKey(instr.rhs) && val.get(instr.rhs).isVAL() && val.get(instr.rhs).val == 0) {
+                        val.put(instr.dst, Constant.NAC);
+                        resInstr = new TacInstr.Assign(instr.dst, instr.lhs);
+                        changed = true;
+                    } else {
+                        val.put(instr.dst, Constant.NAC);
+                    }
+                    break;
+                case MUL:
+                    if (val.containsKey(instr.lhs) && val.get(instr.lhs).isVAL() && val.get(instr.lhs).val == 0) {
+                        val.put(instr.dst, new Constant(0));
+                        resInstr = new TacInstr.LoadImm4(instr.dst, 0);
+                        changed = true;
+                    } else if (val.containsKey(instr.rhs) && val.get(instr.rhs).isVAL() && val.get(instr.rhs).val == 0) {
+                        val.put(instr.dst, new Constant(0));
+                        resInstr = new TacInstr.LoadImm4(instr.dst, 0);
+                        changed = true;
+                    } else {
+                        val.put(instr.dst, Constant.NAC);
+                    }
+                    break;
+                case LAND:
+                    if (val.containsKey(instr.lhs) && val.get(instr.lhs).isVAL()) {
+                        if (val.get(instr.lhs).val == 0) {
+                            val.put(instr.dst, new Constant(0));
+                            resInstr = new TacInstr.LoadImm4(instr.dst, 0);
+                            changed = true;
+                        } else {
+                            val.put(instr.dst, Constant.NAC);
+                            resInstr = new TacInstr.Assign(instr.dst, instr.rhs);
+                            changed = true;
+                        }
+                    } else if (val.containsKey(instr.rhs) && val.get(instr.rhs).isVAL()) {
+                        if (val.get(instr.rhs).val == 0) {
+                            val.put(instr.dst, new Constant(0));
+                            resInstr = new TacInstr.LoadImm4(instr.dst, 0);
+                            changed = true;
+                        } else {
+                            val.put(instr.dst, Constant.NAC);
+                            resInstr = new TacInstr.Assign(instr.dst, instr.lhs);
+                            changed = true;
+                        }
+                    } else {
+                        val.put(instr.dst, Constant.NAC);
+                    }
+                    break;
+                case LOR:
+                    if (val.containsKey(instr.lhs) && val.get(instr.lhs).isVAL()) {
+                        if (val.get(instr.lhs).val == 0) {
+                            val.put(instr.dst, Constant.NAC);
+                            resInstr = new TacInstr.Assign(instr.dst, instr.rhs);
+                            changed = true;
+                        } else {
+                            val.put(instr.dst, new Constant(1));
+                            resInstr = new TacInstr.LoadImm4(instr.dst, 1);
+                            changed = true;
+                        }
+                    } else if (val.containsKey(instr.rhs) && val.get(instr.rhs).isVAL()) {
+                        if (val.get(instr.rhs).val == 0) {
+                            val.put(instr.dst, Constant.NAC);
+                            resInstr = new TacInstr.Assign(instr.dst, instr.lhs);
+                            changed = true;
+                        } else {
+                            val.put(instr.dst, new Constant(1));
+                            resInstr = new TacInstr.LoadImm4(instr.dst, 1);
+                            changed = true;
+                        }
+                    } else {
+                        val.put(instr.dst, Constant.NAC);
+                    }
+                    break;
+                default:
+                    val.put(instr.dst, Constant.NAC);
+            }
         }
     }
 
@@ -115,7 +204,7 @@ public class TacInstrConstantPropagator implements TacInstr.Visitor {
                 if (res) {
                     resInstr = new TacInstr.Branch(instr.target);
                 } else {
-                    resInstr = new TacInstr.Memo("This instruction has been deleted");
+                    resInstr = new TacInstr.Memo("This instruction has been deleted.");
                 }
             }
         }

@@ -39,7 +39,7 @@ public class Optimizer extends Phase<TacProg, TacProg> {
             var CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());
 
             boolean deadCodeElimination = true;
-            boolean copyPropatation = true;
+            boolean copyPropagation = true;
             boolean constantPropagation = true;
 
             // Optimize
@@ -54,7 +54,7 @@ public class Optimizer extends Phase<TacProg, TacProg> {
                     }
                 }
 
-                if (copyPropatation) {
+                if (copyPropagation) {
 //                System.err.println("copy propagation");
                     while ((new CopyPropagator()).optimize(CFG)) {
                         success = true;
