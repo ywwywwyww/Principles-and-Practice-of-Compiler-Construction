@@ -32,10 +32,30 @@ public class GraphColorRegAlloc extends RegAlloc {
 
     Set<Integer> spilledTemp;
 
+    InterferenceGraph interferenceGraph;
+
+    private Map<Temp, Reg> bindings = new TreeMap<>();
+
+    private void bind(Temp temp, Reg reg) {
+        reg.used = true;
+
+        bindings.put(temp, reg);
+        reg.occupied = true;
+        reg.temp = temp;
+    }
+
+    private void unbind(Temp temp) {
+        if (bindings.containsKey(temp)) {
+            bindings.get(temp).occupied = false;
+            bindings.remove(temp);
+        }
+    }
+
     @Override
     public void accept(CFG<PseudoInstr> graph, SubroutineInfo info) {
         // analyze (maybe already analyzed)
         (new LivenessAnalyzer<>()).accept(graph);
+        System.err.printf("\n\n\n%s\n", info.funcLabel);
 
         // map local temp to global temp
         // TODO: replace local temp to live range information (definition-use chain)
@@ -47,14 +67,36 @@ public class GraphColorRegAlloc extends RegAlloc {
 //                        System.err.printf("%s %s %s\n", bb.id, temp, node.get(temp));
                     }
                 }
+                for (var temp : loc.instr.getRead()) {
+                    if (!(temp instanceof Reg)) {
+                        node.computeIfAbsent(temp, v -> numGlobalTemps++);
+//                        System.err.printf("%s %s %s\n", bb.id, temp, node.get(temp));
+                    }
+                }
             }
         }
+//        System.err.println(numGlobalTemps);
+//        System.err.println(node);
 
         // build interference graph
-        var interferenceGraph = new InterferenceGraph(numGlobalTemps);
+        interferenceGraph = new InterferenceGraph(numGlobalTemps);
         for (var bb : graph) {
+            for (var temp1 : bb.liveIn) {
+                if (!(temp1 instanceof Reg)) {
+                    int id1 = node.get(temp1);
+                    for (var temp2 : bb.liveIn) {
+                        if (!(temp2 instanceof Reg)) {
+//                                System.err.printf("%s %s %s\n", bb.id, temp1, temp2);
+                            int id2 = node.get(temp2);
+                            if (id1 != id2) {
+                                interferenceGraph.addEdge(id1, id2);
+                            }
+                        }
+                    }
+                }
+            }
             for (var loc : bb) {
-                for (var temp1 : loc.instr.getWritten()) {
+                for (var temp1 : loc.liveOut) {
                     if (!(temp1 instanceof Reg)) {
                         int id1 = node.get(temp1);
                         for (var temp2 : loc.liveOut) {
@@ -79,9 +121,9 @@ public class GraphColorRegAlloc extends RegAlloc {
             boolean success = false;
             for (int j = 0; j < numGlobalTemps; j++) {
                 if (!interferenceGraph.removedNodes.contains(j)) {
-                    chosen = j;
                     if (interferenceGraph.getDegree(j) < numAllocableRegs) {
                         success = true;
+                        chosen = j;
                         break;
                     }
                 }
@@ -89,7 +131,7 @@ public class GraphColorRegAlloc extends RegAlloc {
             if (!success) {
                 for (int j = 0; j < numGlobalTemps; j++) {
                     if (!interferenceGraph.removedNodes.contains(j) &&
-                            interferenceGraph.getDegree(j) > numAllocableRegs) {
+                            interferenceGraph.getDegree(j) >= numAllocableRegs) {
                         if (chosen == -1 || interferenceGraph.getDegree(j) > interferenceGraph.getDegree(chosen)) {
                             chosen = j;
                         }
@@ -99,13 +141,18 @@ public class GraphColorRegAlloc extends RegAlloc {
             order.push(chosen);
             interferenceGraph.removeNode(chosen);
         }
+//        System.err.println(order);
         for (int i = 0; i < numGlobalTemps; i++) {
             int temp = order.pop();
+            interferenceGraph.recoverNode(temp);
             Set<Integer> candidate = new TreeSet<>();
             for (int j = 0; j < numAllocableRegs; j++) {
                 candidate.add(j);
             }
+//            System.err.printf("removed %s\n", interferenceGraph.removedNodes);
+//            System.err.printf("neighbourhood %s %s\n", temp, interferenceGraph.getNeighbourhood(temp));
             for (var neighbour : interferenceGraph.getNeighbourhood(temp)) {
+//                System.err.printf("%s %s\n", temp, neighbour);
                 candidate.remove(interferenceGraph.getColor(neighbour));
             }
             if (candidate.isEmpty()) {
@@ -113,19 +160,36 @@ public class GraphColorRegAlloc extends RegAlloc {
                 interferenceGraph.setColor(temp, -1);
                 System.err.printf("ERROR: spilled temp %s\n", temp);
             } else {
-                int color = new ArrayList<>(candidate).get(random.nextInt(candidate.size()));
+//                System.err.printf("%s %s\n", temp, candidate);
+//                int color = new ArrayList<>(candidate).get(random.nextInt(candidate.size()));
+                int color = new ArrayList<>(candidate).get(0);
                 interferenceGraph.setColor(temp, color);
             }
         }
 
+        System.err.printf("%s\n", interferenceGraph.colors);
+//        System.err.printf("%s\n", interferenceGraph.removedNodes);
+//        System.err.printf("%s\n", interferenceGraph.edges);
+
         // alloc register
-        new BruteRegAlloc(emitter).accept(graph, info);
-//        var subEmitter = emitter.emitSubroutine(info);
-//        for (var bb : graph) {
-//            bb.label.ifPresent(subEmitter::emitLabel);
-//            localAlloc(bb, subEmitter);
-//        }
-//        subEmitter.emitEnd();
+        var subEmitter = emitter.emitSubroutine(info);
+        for (var reg : emitter.allocatableRegs) {
+            reg.occupied = false;
+        }
+        bindings.clear();
+        for (int i = 0; i < info.numArg; i++) {
+            var cur = new Temp(i);
+            subEmitter.emitLoadFromStack(allocRegFor(cur), cur);
+        }
+        for (var bb : graph) {
+            bb.label.ifPresent(subEmitter::emitLabel);
+            localAlloc(bb, subEmitter);
+        }
+        for (var reg : emitter.allocatableRegs) {
+            reg.occupied = false;
+        }
+        bindings.clear();
+        subEmitter.emitEnd();
     }
 
     private void localAlloc(BasicBlock<PseudoInstr> bb, SubroutineEmitter subEmitter) {
@@ -133,11 +197,13 @@ public class GraphColorRegAlloc extends RegAlloc {
 
         for (var loc : bb.allSeq()) {
             // Handle special instructions on caller save/restore.
+            System.err.printf("%s\n", loc.instr);
 
             if (loc.instr instanceof HoleInstr) {
                 if (loc.instr.equals(HoleInstr.CallerSave)) {
                     for (var reg : emitter.callerSaveRegs) {
-                        if (reg.occupied && loc.liveOut.contains(reg.temp)) {
+                        if (reg.occupied) {
+                            System.err.printf("save %s %s\n", reg, reg.temp);
                             callerNeedSave.add(reg);
                             subEmitter.emitStoreToStack(reg);
                         }
@@ -147,6 +213,7 @@ public class GraphColorRegAlloc extends RegAlloc {
 
                 if (loc.instr.equals(HoleInstr.CallerRestore)) {
                     for (var reg : callerNeedSave) {
+                        System.err.printf("restore %s %s\n", reg, reg.temp);
                         subEmitter.emitLoadFromStack(reg, reg.temp);
                     }
                     callerNeedSave.clear();
@@ -178,7 +245,7 @@ public class GraphColorRegAlloc extends RegAlloc {
             if (temp instanceof Reg) {
                 srcRegs[i] = (Reg) temp;
             } else {
-                srcRegs[i] = allocRegFor(temp, true, loc.liveIn, subEmitter);
+                srcRegs[i] = allocRegFor(temp);
             }
         }
 
@@ -187,15 +254,22 @@ public class GraphColorRegAlloc extends RegAlloc {
             if (temp instanceof Reg) {
                 dstRegs[i] = ((Reg) temp);
             } else {
-                dstRegs[i] = allocRegFor(temp, false, loc.liveIn, subEmitter);
+                dstRegs[i] = allocRegFor(temp);
             }
         }
 
         subEmitter.emitNative(instr.toNative(dstRegs, srcRegs));
     }
 
-    private Reg allocRegFor(Temp temp, boolean isRead, Set<Temp> live, SubroutineEmitter subEmitter) {
-        return emitter.allocatableRegs[node.get(temp)];
+    private Reg allocRegFor(Temp temp) {
+//        System.err.printf("%s %s %s\n", temp, node.get(temp), interferenceGraph.getColor(node.get(temp)));
+        var reg = emitter.allocatableRegs[interferenceGraph.getColor(node.get(temp))];
+//        if (reg.occupied) {
+//            System.err.printf("%s\n", bindings.containsKey(reg.temp));
+//            unbind(reg.temp);
+//        }
+        bind(temp, reg);
+        return reg;
     }
 
     private Random random = new Random();
