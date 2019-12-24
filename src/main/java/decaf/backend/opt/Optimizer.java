@@ -3,10 +3,9 @@ package decaf.backend.opt;
 import decaf.backend.dataflow.*;
 import decaf.driver.Config;
 import decaf.driver.Phase;
-import decaf.lowlevel.tac.Simulator;
-import decaf.lowlevel.tac.TacFunc;
-import decaf.lowlevel.tac.TacInstr;
-import decaf.lowlevel.tac.TacProg;
+import decaf.lowlevel.instr.Temp;
+import decaf.lowlevel.label.Label;
+import decaf.lowlevel.tac.*;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -27,6 +26,14 @@ public class Optimizer extends Phase<TacProg, TacProg> {
     @Override
     public TacProg transform(TacProg input) {
         for (var func : input.funcs) {
+//            func.instrSeq = new ArrayList<>();
+//            func.instrSeq.add(new TacInstr.Mark(func.entry));
+//            func.instrSeq.add(new TacInstr.Assign(new Temp(2), new Temp(1)));
+//            func.instrSeq.add(new TacInstr.Mark(new Label("L1")));
+//            func.instrSeq.add(new TacInstr.Parm(new Temp(2)));
+//            func.instrSeq.add(new TacInstr.DirectCall(Intrinsic.PRINT_INT));
+//            func.instrSeq.add(new TacInstr.Assign(new Temp(2), new Temp(1)));
+//            func.instrSeq.add(new TacInstr.CondBranch(TacInstr.CondBranch.Op.BEQZ, new Temp(2), new Label("L1")));
 
             // Build CFG
             var CFG = (new CFGBuilder<TacInstr>()).buildFrom(func.instrSeq, func.numArgs, func.getUsedTempCount());

@@ -224,6 +224,8 @@ public class ConstantPropagator implements CFGOptimizer<TacInstr> {
                         loc.instr = new TacInstr.LoadImm4(((TacInstr.Binary) loc.instr).dst, res);
                         changed = true;
                     }
+                } else {
+                    val.put(((TacInstr.Binary) loc.instr).dst, Constant.NAC);
                 }
             } else if (loc.instr instanceof TacInstr.LoadImm4) {
                 val.put(((TacInstr.LoadImm4) loc.instr).dst, new Constant(((TacInstr.LoadImm4) loc.instr).value));
@@ -243,6 +245,9 @@ public class ConstantPropagator implements CFGOptimizer<TacInstr> {
                     }
                 }
             } else {
+//                if (!loc.instr.getRead().isEmpty()) {
+//                    System.err.printf("ERROR: %s\n", loc.instr);
+//                }
                 var written = loc.instr.getWritten();
                 for (var temp : written) {
                     val.put(temp, Constant.NAC);

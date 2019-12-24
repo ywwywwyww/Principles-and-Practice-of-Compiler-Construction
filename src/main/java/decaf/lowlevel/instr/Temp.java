@@ -24,4 +24,12 @@ public class Temp implements Comparable<Temp> {
     public int compareTo(Temp that) {
         return this.index - that.index;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Temp)) {
+            return false;
+        }
+        return compareTo((Temp) obj) == 0;
+    }
 }

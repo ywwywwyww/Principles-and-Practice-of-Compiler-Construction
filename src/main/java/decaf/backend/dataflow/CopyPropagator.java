@@ -22,6 +22,8 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
                 }
             }
             bb.copyOut = new TreeMap<>(bb.copyGen);
+//            System.err.printf("%d.copyGen: %s\n", bb.id, bb.copyGen);
+//            System.err.printf("%d.copyKill: %s\n", bb.id, bb.copyKill);
         }
 
         boolean changed = true;
@@ -31,9 +33,17 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
                 if (bb.id != 0) {
                     for (var last : graph.getPrev(bb.id)) {
                         for (var key : new TreeSet<>(bb.copyIn.keySet())) {
-                            if (!graph.getBlock(last).copyOut.containsKey(key) ||
-                                    graph.getBlock(last).copyOut.get(key) != bb.copyIn.get(key)) {
+                            if (key.index == 2) {
+//                                System.err.printf("%s %s %s\n", bb.copyIn.get(key), graph.getBlock(last).copyOut.get(key),
+//                                        bb.copyIn.get(key).equals(graph.getBlock(last).copyOut.get(key)));
+                            }
+                            if (graph.getBlock(last).copyOut.containsKey(key) && bb.copyIn.get(key).index == -1) {
+                                bb.copyIn.put(key, graph.getBlock(last).copyOut.get(key));
+//                                System.err.printf("hahaha1 %s\n", key);
+                            } else if (!graph.getBlock(last).copyOut.containsKey(key) ||
+                                    !graph.getBlock(last).copyOut.get(key).equals(bb.copyIn.get(key))) {
                                 bb.copyIn.remove(key);
+//                                System.err.printf("hahaha2 %s\n", key);
                             }
                         }
                     }
@@ -45,9 +55,11 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
                 for (var key : new TreeSet<>(temp.keySet())) {
                     if (bb.copyKill.contains(temp.get(key))) {
                         temp.remove(key);
+                    } else if(temp.get(key).index == -1) {
+                        temp.remove(key);
                     }
                 }
-                temp.putAll(bb.copyOut);
+                temp.putAll(bb.copyGen);
                 if (!temp.equals(bb.copyOut)) {
                     bb.copyOut = temp;
                     changed = true;
@@ -56,6 +68,8 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
         }
 
         for (var bb : graph.nodes) {
+//            System.err.printf("%d.copyIn: %s\n", bb.id, bb.copyIn);
+//            System.err.printf("%d.copyOut: %s\n", bb.id, bb.copyOut);
             if (optimizeFor(bb)) {
                 success = true;
             }
@@ -69,13 +83,13 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
         var it = bb.backwardIterator();
         while (it.hasNext()) {
             var loc = it.next();
-            bb.copyKill.addAll(loc.instr.getWritten());
             if (loc.instr instanceof TacInstr.Assign) {
                 if (!bb.copyKill.contains(((TacInstr.Assign) loc.instr).dst) &&
                         !bb.copyKill.contains(((TacInstr.Assign) loc.instr).src)) {
                     bb.copyGen.put(((TacInstr.Assign) loc.instr).dst, ((TacInstr.Assign) loc.instr).src);
                 }
             }
+            bb.copyKill.addAll(loc.instr.getWritten());
         }
     }
 
@@ -87,9 +101,9 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
         while (it.hasNext()) {
             var loc = it.next();
             loc.copyIn = new TreeMap<>(copy);
-            cp.res = null;
+            cp.result = null;
             loc.instr.accept(cp);
-            loc.instr = cp.res;
+            loc.instr = cp.result;
             for (var key : new TreeSet<>(copy.keySet())) {
                 if (loc.instr.getWritten().contains(copy.get(key)) || loc.instr.getWritten().contains(key)) {
                     copy.remove(key);
@@ -112,49 +126,49 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
 class TacInstrCopyPropagator implements TacInstr.Visitor {
     Map<Temp, Temp> copy;
 
-    TacInstr res;
+    TacInstr result;
 
     boolean changed;
 
     @Override
     public void visitAssign(TacInstr.Assign instr) {
-        res = new TacInstr.Assign(instr.dst, find(instr.src));
+        result = new TacInstr.Assign(instr.dst, find(instr.src));
     }
 
     @Override
     public void visitUnary(TacInstr.Unary instr) {
-        res = new TacInstr.Unary(instr.op, instr.dst, find(instr.operand));
+        result = new TacInstr.Unary(instr.op, instr.dst, find(instr.operand));
     }
 
     @Override
     public void visitBinary(TacInstr.Binary instr) {
-        res = new TacInstr.Binary(instr.op, instr.dst, find(instr.lhs), find(instr.rhs));
+        result = new TacInstr.Binary(instr.op, instr.dst, find(instr.lhs), find(instr.rhs));
     }
 
     @Override
     public void visitCondBranch(TacInstr.CondBranch instr) {
-        res = new TacInstr.CondBranch(instr.op, find(instr.cond), instr.target);
+        result = new TacInstr.CondBranch(instr.op, find(instr.cond), instr.target);
     }
 
     @Override
     public void visitParm(TacInstr.Parm instr) {
-        res = new TacInstr.Parm(find(instr.value));
+        result = new TacInstr.Parm(find(instr.value));
     }
 
     @Override
     public void visitMemory(TacInstr.Memory instr) {
-        res = new TacInstr.Memory(instr.op,
+        result = new TacInstr.Memory(instr.op,
                 instr.op == TacInstr.Memory.Op.STORE ? find(instr.dst) : instr.dst, find(instr.base), instr.offset);
     }
 
     @Override
     public void visitReturn(TacInstr.Return instr) {
-        res = instr.value.map(temp -> new TacInstr.Return(find(temp))).orElseGet(TacInstr.Return::new);
+        result = instr.value.map(temp -> new TacInstr.Return(find(temp))).orElseGet(TacInstr.Return::new);
     }
 
     @Override
     public void visitIndirectCall(TacInstr.IndirectCall instr) {
-        res = instr.dst.map(temp -> new TacInstr.IndirectCall(temp, find(instr.entry))).orElseGet(() -> new TacInstr.IndirectCall(find(instr.entry)));
+        result = instr.dst.map(temp -> new TacInstr.IndirectCall(temp, find(instr.entry))).orElseGet(() -> new TacInstr.IndirectCall(find(instr.entry)));
     }
 
     @Override
@@ -162,7 +176,7 @@ class TacInstrCopyPropagator implements TacInstr.Visitor {
         if (!instr.getRead().isEmpty()) {
             System.err.printf("ERROR: %s\n", instr);
         }
-        res = instr;
+        result = instr;
     }
 
     Temp find(Temp val) {
