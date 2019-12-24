@@ -50,7 +50,8 @@ class TacInstrCopyPropagator implements TacInstr.Visitor {
 
     @Override
     public void visitIndirectCall(TacInstr.IndirectCall instr) {
-        resInstr = instr.dst.map(temp -> new TacInstr.IndirectCall(temp, find(instr.entry))).orElseGet(() -> new TacInstr.IndirectCall(find(instr.entry)));
+        resInstr = instr.dst.map(temp -> new TacInstr.IndirectCall(temp, find(instr.entry))).orElseGet(() ->
+                new TacInstr.IndirectCall(find(instr.entry)));
     }
 
     @Override

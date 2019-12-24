@@ -1,0 +1,13 @@
+class Main {
+    static int f(int x) {
+        return x * 2;
+    }
+    static int g(int x) {
+        int y = x;
+        return f(y);
+    }
+    static void main() {
+	int a = g(1);
+        Print(1);
+    }
+}

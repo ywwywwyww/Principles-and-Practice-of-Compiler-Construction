@@ -206,6 +206,7 @@ public class TacInstrConstantPropagator implements TacInstr.Visitor {
                 } else {
                     resInstr = new TacInstr.Memo("This instruction has been deleted.");
                 }
+                changed = true;
             }
         }
     }

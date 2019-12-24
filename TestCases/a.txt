@@ -1,0 +1,454 @@
+
+
+
+_L_QueueItem_new
+{0=0, 1=1, 2=0}
+li      _T0, 16
+move    $a0, _T0
+li      $v0, 9
+syscall
+move    _T1, $v0
+la      _T2, _V_QueueItem
+sw      _T2, 0(_T1)
+move    $v0, _T1
+
+
+
+_L_Queue_new
+{0=0, 1=1, 2=0}
+li      _T0, 12
+move    $a0, _T0
+li      $v0, 9
+syscall
+move    _T1, $v0
+la      _T2, _V_Queue
+sw      _T2, 0(_T1)
+move    $v0, _T1
+
+
+
+_L_Main_new
+{0=0, 1=1, 2=0}
+li      _T0, 4
+move    $a0, _T0
+li      $v0, 9
+syscall
+move    _T1, $v0
+la      _T2, _V_Main
+sw      _T2, 0(_T1)
+move    $v0, _T1
+
+
+
+_L_QueueItem_Init
+{0=3, 1=2, 2=1, 3=0}
+sw      _T1, 4(_T0)
+sw      _T2, 8(_T0)
+sw      _T0, 12(_T2)
+sw      _T3, 12(_T0)
+sw      _T0, 8(_T3)
+
+
+
+_L_QueueItem_GetData
+{0=0, 1=0, 2=0, 3=0}
+lw      _T1, 4(_T0)
+move    $v0, _T1
+
+
+
+_L_QueueItem_GetNext
+{0=0, 1=0, 2=0, 3=0}
+lw      _T1, 8(_T0)
+move    $v0, _T1
+
+
+
+_L_QueueItem_GetPrev
+{0=0, 1=0, 2=0, 3=0}
+lw      _T1, 12(_T0)
+move    $v0, _T1
+
+
+
+_L_QueueItem_SetNext
+{0=1, 1=0, 2=0, 3=0}
+sw      _T1, 8(_T0)
+
+
+
+_L_QueueItem_SetPrev
+{0=1, 1=0, 2=0, 3=0}
+sw      _T1, 12(_T0)
+
+
+
+_L_Queue_Init
+{0=1, 1=0, 2=4, 3=3, 4=2, 5=1, 6=0, 7=0}
+# TODO: caller save
+save $t0 _T0
+jal     _L_QueueItem_new
+# TODO: caller restore
+restore $t0 _T0
+move    _T1, $v0
+sw      _T1, 4(_T0)
+li      _T2, 0
+lw      _T3, 4(_T0)
+lw      _T4, 4(_T0)
+lw      _T5, 4(_T0)
+lw      _T6, 0(_T5)
+lw      _T7, 20(_T6)
+move    $a0, _T5
+move    $a1, _T2
+move    $a2, _T3
+move    $a3, _T4
+# TODO: caller save
+save $v1 _T7
+save $t0 _T5
+save $t1 _T4
+save $t2 _T3
+save $t3 _T2
+jalr    _T7
+# TODO: caller restore
+restore $v1 _T7
+restore $t0 _T5
+restore $t1 _T4
+restore $t2 _T3
+restore $t3 _T2
+
+
+
+_L_Queue_EnQueue
+{0=5, 1=4, 2=3, 3=0, 4=1, 5=0, 6=0, 7=2, 8=1, 9=0, 10=0}
+# TODO: caller save
+save $t3 _T1
+save $t4 _T0
+jal     _L_QueueItem_new
+# TODO: caller restore
+restore $t3 _T1
+restore $t4 _T0
+move    _T3, $v0
+move    _T2, _T3
+lw      _T4, 4(_T0)
+lw      _T5, 0(_T4)
+lw      _T6, 12(_T5)
+move    $a0, _T4
+# TODO: caller save
+save $v1 _T6
+save $t0 _T4
+save $t2 _T2
+save $t3 _T1
+save $t4 _T0
+jalr    _T6
+# TODO: caller restore
+restore $v1 _T6
+restore $t0 _T4
+restore $t2 _T2
+restore $t3 _T1
+restore $t4 _T0
+move    _T7, $v0
+lw      _T8, 4(_T0)
+lw      _T9, 0(_T2)
+lw      _T10, 20(_T9)
+move    $a0, _T2
+move    $a1, _T1
+move    $a2, _T7
+move    $a3, _T8
+# TODO: caller save
+save $v1 _T10
+save $t0 _T8
+save $t1 _T7
+save $t2 _T2
+save $t3 _T1
+save $t4 _T0
+jalr    _T10
+# TODO: caller restore
+restore $v1 _T10
+restore $t0 _T8
+restore $t1 _T7
+restore $t2 _T2
+restore $t3 _T1
+restore $t4 _T0
+
+
+
+_L_Queue_DeQueue
+{0=2, 1=4, 2=1, 3=0, 4=0, 5=1, 6=0, 7=0, 8=0, 9=0, 10=3, 11=1, 12=0, 13=0, 14=0, 15=0, 16=0, 17=0, 18=0, 19=0, 20=2, 21=0, 22=0, 23=1, 24=0, 25=0, 26=0, 27=0, 28=2, 29=0, 30=0, 31=1, 32=0, 33=0}
+lw      _T2, 4(_T0)
+lw      _T3, 0(_T2)
+lw      _T4, 16(_T3)
+move    $a0, _T2
+# TODO: caller save
+save $v1 _T4
+save $t0 _T2
+save $t1 _T0
+jalr    _T4
+# TODO: caller restore
+restore $v1 _T4
+restore $t0 _T2
+restore $t1 _T0
+move    _T5, $v0
+lw      _T6, 4(_T0)
+seq     _T7, _T5, _T6
+la      _T8, _S3
+move    $a0, _T8
+li      $v0, 4
+syscall
+li      _T9, 0
+move    $v0, _T9
+lw      _T11, 4(_T0)
+lw      _T12, 0(_T11)
+lw      _T13, 16(_T12)
+move    $a0, _T11
+# TODO: caller save
+save $v1 _T13
+save $t0 _T11
+save $t1 _T0
+jalr    _T13
+# TODO: caller restore
+restore $v1 _T13
+restore $t0 _T11
+restore $t1 _T0
+move    _T14, $v0
+move    _T10, _T14
+lw      _T15, 0(_T10)
+lw      _T16, 8(_T15)
+move    $a0, _T10
+# TODO: caller save
+save $v1 _T16
+save $t0 _T11
+save $t1 _T0
+save $t2 _T10
+jalr    _T16
+# TODO: caller restore
+restore $v1 _T16
+restore $t0 _T11
+restore $t1 _T0
+restore $t2 _T10
+move    _T17, $v0
+move    _T1, _T17
+lw      _T18, 0(_T10)
+lw      _T19, 12(_T18)
+move    $a0, _T10
+# TODO: caller save
+save $v1 _T19
+save $t0 _T11
+save $t1 _T0
+save $t2 _T10
+save $t3 _T1
+jalr    _T19
+# TODO: caller restore
+restore $v1 _T19
+restore $t0 _T11
+restore $t1 _T0
+restore $t2 _T10
+restore $t3 _T1
+move    _T20, $v0
+lw      _T21, 0(_T10)
+lw      _T22, 16(_T21)
+move    $a0, _T10
+# TODO: caller save
+save $v1 _T22
+save $t0 _T11
+save $t1 _T20
+save $t2 _T10
+save $t3 _T1
+jalr    _T22
+# TODO: caller restore
+restore $v1 _T22
+restore $t0 _T11
+restore $t1 _T20
+restore $t2 _T10
+restore $t3 _T1
+move    _T23, $v0
+lw      _T24, 0(_T23)
+lw      _T25, 24(_T24)
+move    $a0, _T23
+move    $a1, _T20
+# TODO: caller save
+save $v1 _T25
+save $t0 _T23
+save $t1 _T20
+save $t2 _T10
+save $t3 _T1
+jalr    _T25
+# TODO: caller restore
+restore $v1 _T25
+restore $t0 _T23
+restore $t1 _T20
+restore $t2 _T10
+restore $t3 _T1
+lw      _T26, 0(_T10)
+lw      _T27, 16(_T26)
+move    $a0, _T10
+# TODO: caller save
+save $v1 _T27
+save $t0 _T23
+save $t1 _T20
+save $t2 _T10
+save $t3 _T1
+jalr    _T27
+# TODO: caller restore
+restore $v1 _T27
+restore $t0 _T23
+restore $t1 _T20
+restore $t2 _T10
+restore $t3 _T1
+move    _T28, $v0
+lw      _T29, 0(_T10)
+lw      _T30, 12(_T29)
+move    $a0, _T10
+# TODO: caller save
+save $v1 _T30
+save $t0 _T23
+save $t1 _T28
+save $t2 _T10
+save $t3 _T1
+jalr    _T30
+# TODO: caller restore
+restore $v1 _T30
+restore $t0 _T23
+restore $t1 _T28
+restore $t2 _T10
+restore $t3 _T1
+move    _T31, $v0
+lw      _T32, 0(_T31)
+lw      _T33, 28(_T32)
+move    $a0, _T31
+move    $a1, _T28
+# TODO: caller save
+save $v1 _T33
+save $t0 _T31
+save $t1 _T28
+save $t2 _T10
+save $t3 _T1
+jalr    _T33
+# TODO: caller restore
+restore $v1 _T33
+restore $t0 _T31
+restore $t1 _T28
+restore $t2 _T10
+restore $t3 _T1
+move    $v0, _T1
+
+
+
+main
+{0=1, 1=2, 2=0, 3=0, 4=0, 5=0, 6=0, 7=0, 8=0, 9=0, 10=0, 11=0, 12=0, 13=0, 14=0, 15=0, 16=0, 17=0, 18=0, 19=0, 20=0, 21=0, 22=0, 23=0, 24=0, 25=0, 26=0, 27=0, 28=0, 29=0, 30=0, 31=0, 32=0, 33=0, 34=0, 35=0, 36=0, 37=0, 38=0}
+# TODO: caller save
+jal     _L_Queue_new
+# TODO: caller restore
+move    _T2, $v0
+move    _T0, _T2
+lw      _T3, 0(_T0)
+lw      _T4, 16(_T3)
+move    $a0, _T0
+# TODO: caller save
+save $v1 _T4
+save $t0 _T0
+jalr    _T4
+# TODO: caller restore
+restore $v1 _T4
+restore $t0 _T0
+li      _T5, 0
+move    _T1, _T5
+li      _T6, 10
+slt     _T7, _T1, _T6
+lw      _T8, 0(_T0)
+lw      _T9, 12(_T8)
+move    $a0, _T0
+move    $a1, _T1
+# TODO: caller save
+save $v1 _T9
+save $t0 _T0
+save $t1 _T1
+jalr    _T9
+# TODO: caller restore
+restore $v1 _T9
+restore $t0 _T0
+restore $t1 _T1
+li      _T10, 1
+add     _T11, _T1, _T10
+move    _T1, _T11
+li      _T12, 0
+move    _T1, _T12
+li      _T13, 4
+slt     _T14, _T1, _T13
+lw      _T15, 0(_T0)
+lw      _T16, 8(_T15)
+move    $a0, _T0
+# TODO: caller save
+save $v1 _T16
+save $t0 _T0
+save $t1 _T1
+jalr    _T16
+# TODO: caller restore
+restore $v1 _T16
+restore $t0 _T0
+restore $t1 _T1
+move    _T17, $v0
+move    $a0, _T17
+li      $v0, 1
+syscall
+la      _T18, _S4
+move    $a0, _T18
+li      $v0, 4
+syscall
+li      _T19, 1
+add     _T20, _T1, _T19
+move    _T1, _T20
+la      _T21, _S5
+move    $a0, _T21
+li      $v0, 4
+syscall
+li      _T22, 0
+move    _T1, _T22
+li      _T23, 10
+slt     _T24, _T1, _T23
+lw      _T25, 0(_T0)
+lw      _T26, 12(_T25)
+move    $a0, _T0
+move    $a1, _T1
+# TODO: caller save
+save $v1 _T26
+save $t0 _T0
+save $t1 _T1
+jalr    _T26
+# TODO: caller restore
+restore $v1 _T26
+restore $t0 _T0
+restore $t1 _T1
+li      _T27, 1
+add     _T28, _T1, _T27
+move    _T1, _T28
+li      _T29, 0
+move    _T1, _T29
+li      _T30, 17
+slt     _T31, _T1, _T30
+lw      _T32, 0(_T0)
+lw      _T33, 8(_T32)
+move    $a0, _T0
+# TODO: caller save
+save $v1 _T33
+save $t0 _T0
+save $t1 _T1
+jalr    _T33
+# TODO: caller restore
+restore $v1 _T33
+restore $t0 _T0
+restore $t1 _T1
+move    _T34, $v0
+move    $a0, _T34
+li      $v0, 1
+syscall
+la      _T35, _S4
+move    $a0, _T35
+li      $v0, 4
+syscall
+li      _T36, 1
+add     _T37, _T1, _T36
+move    _T1, _T37
+la      _T38, _S5
+move    $a0, _T38
+li      $v0, 4
+syscall

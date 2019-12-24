@@ -1,0 +1,18 @@
+class Main {
+    static void main() {
+        int i;
+        for (i = 1; i <= 100000; i = i + 1) {
+            int a1 = 0;
+            int a2 = 0;
+            int a3 = 0;
+            int a4 = 0;
+            int a5 = 0;
+            int a6 = 0;
+            int a7 = 0;
+            int a8 = 0;
+            int a9 = 0;
+            int a10 = 0;
+        }
+        Print("ok");
+    }
+}
