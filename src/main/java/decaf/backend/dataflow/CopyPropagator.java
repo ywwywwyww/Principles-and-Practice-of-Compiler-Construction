@@ -119,9 +119,9 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
         while (it.hasNext()) {
             var loc = it.next();
             loc.copyIn = new TreeMap<>(copy);
-            cp.result = null;
+            cp.resInstr = null;
             loc.instr.accept(cp);
-            loc.instr = cp.result;
+            loc.instr = cp.resInstr;
             for (var key : new TreeSet<>(copy.keySet())) {
                 if (loc.instr.getWritten().contains(copy.get(key)) || loc.instr.getWritten().contains(key)) {
                     copy.remove(key);
@@ -140,68 +140,3 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
 
     TacInstrCopyPropagator cp = new TacInstrCopyPropagator();
 }
-
-class TacInstrCopyPropagator implements TacInstr.Visitor {
-    Map<Temp, Temp> copy;
-
-    TacInstr result;
-
-    boolean changed;
-
-    @Override
-    public void visitAssign(TacInstr.Assign instr) {
-        result = new TacInstr.Assign(instr.dst, find(instr.src));
-    }
-
-    @Override
-    public void visitUnary(TacInstr.Unary instr) {
-        result = new TacInstr.Unary(instr.op, instr.dst, find(instr.operand));
-    }
-
-    @Override
-    public void visitBinary(TacInstr.Binary instr) {
-        result = new TacInstr.Binary(instr.op, instr.dst, find(instr.lhs), find(instr.rhs));
-    }
-
-    @Override
-    public void visitCondBranch(TacInstr.CondBranch instr) {
-        result = new TacInstr.CondBranch(instr.op, find(instr.cond), instr.target);
-    }
-
-    @Override
-    public void visitParm(TacInstr.Parm instr) {
-        result = new TacInstr.Parm(find(instr.value));
-    }
-
-    @Override
-    public void visitMemory(TacInstr.Memory instr) {
-        result = new TacInstr.Memory(instr.op,
-                instr.op == TacInstr.Memory.Op.STORE ? find(instr.dst) : instr.dst, find(instr.base), instr.offset);
-    }
-
-    @Override
-    public void visitReturn(TacInstr.Return instr) {
-        result = instr.value.map(temp -> new TacInstr.Return(find(temp))).orElseGet(TacInstr.Return::new);
-    }
-
-    @Override
-    public void visitIndirectCall(TacInstr.IndirectCall instr) {
-        result = instr.dst.map(temp -> new TacInstr.IndirectCall(temp, find(instr.entry))).orElseGet(() -> new TacInstr.IndirectCall(find(instr.entry)));
-    }
-
-    @Override
-    public void visitOthers(TacInstr instr) {
-        if (!instr.getRead().isEmpty()) {
-            System.err.printf("ERROR: %s\n", instr);
-        }
-        result = instr;
-    }
-
-    Temp find(Temp val) {
-        while(copy.containsKey(val)) {
-            val = copy.get(val);
-            changed = true;
-        }
-        return val;
-    }
-};

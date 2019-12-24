@@ -126,9 +126,9 @@ public class BasicBlock<I extends PseudoInstr> implements Iterable<Loc<I>> {
 
     public Set<Temp> liveOut;
 
-    public Map<Temp, ConstantPropagator.Constant> valIn;
+    public Map<Temp, Constant> valIn;
 
-    public Map<Temp, ConstantPropagator.Constant> valOut;
+    public Map<Temp, Constant> valOut;
 
     public Map<Temp, Temp> copyIn;
 
