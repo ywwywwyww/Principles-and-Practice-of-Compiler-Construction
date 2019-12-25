@@ -84,9 +84,7 @@ public class Optimizer extends Phase<TacProg, TacProg> {
         List<TacInstr> instrSeq = new ArrayList<>();
         instrSeq.add(new TacInstr.Mark(CFG.funcLabel.get()));
         for (var node : CFG.nodes) {
-            if (node.label.isPresent()) {
-                instrSeq.add(new TacInstr.Mark(node.label.get()));
-            }
+            node.label.ifPresent(label -> instrSeq.add(new TacInstr.Mark(label)));
             for (var loc : node.locs) {
 //                    instrSeq.add(new TacInstr.Memo(""));
 //                    instrSeq.add(new TacInstr.Memo("live in : " + loc.liveIn.toString()));

@@ -22,6 +22,10 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
                 for (int i = 0; i < graph.tempUsed; i++) {
                     bb.dataFlow.copy.in.put(new Temp(i), new Temp(-1));
                 }
+            } else {
+                for (int i = graph.numArgs; i < graph.tempUsed; i++) {
+                    bb.dataFlow.copy.in.put(new Temp(i), new Temp(-1));
+                }
             }
             bb.dataFlow.copy.out = new TreeMap<>(bb.dataFlow.copy.in);
             for (var key : bb.dataFlow.copy.kill) {
