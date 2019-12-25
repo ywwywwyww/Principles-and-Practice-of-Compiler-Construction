@@ -55,7 +55,7 @@ public class GraphColorRegAlloc extends RegAlloc {
     public void accept(CFG<PseudoInstr> graph, SubroutineInfo info) {
         // analyze (maybe already analyzed)
         (new LivenessAnalyzer<>()).accept(graph);
-        System.err.printf("\n\n\n%s\n", info.funcLabel);
+//        System.err.printf("\n\n\n%s\n", info.funcLabel);
 
         // map local temp to global temp
         // TODO: replace local temp to live range information (definition-use chain)
@@ -161,13 +161,13 @@ public class GraphColorRegAlloc extends RegAlloc {
                 System.err.printf("ERROR: spilled temp %s\n", temp);
             } else {
 //                System.err.printf("%s %s\n", temp, candidate);
-//                int color = new ArrayList<>(candidate).get(random.nextInt(candidate.size()));
-                int color = new ArrayList<>(candidate).get(0);
+                int color = new ArrayList<>(candidate).get(random.nextInt(candidate.size()));
+//                int color = new ArrayList<>(candidate).get(0);
                 interferenceGraph.setColor(temp, color);
             }
         }
 
-        System.err.printf("%s\n", interferenceGraph.colors);
+//        System.err.printf("%s\n", interferenceGraph.colors);
 //        System.err.printf("%s\n", interferenceGraph.removedNodes);
 //        System.err.printf("%s\n", interferenceGraph.edges);
 
@@ -197,13 +197,13 @@ public class GraphColorRegAlloc extends RegAlloc {
 
         for (var loc : bb.allSeq()) {
             // Handle special instructions on caller save/restore.
-            System.err.printf("%s\n", loc.instr);
+//            System.err.printf("%s\n", loc.instr);
 
             if (loc.instr instanceof HoleInstr) {
                 if (loc.instr.equals(HoleInstr.CallerSave)) {
                     for (var reg : emitter.callerSaveRegs) {
                         if (reg.occupied) {
-                            System.err.printf("save %s %s\n", reg, reg.temp);
+//                            System.err.printf("save %s %s\n", reg, reg.temp);
                             callerNeedSave.add(reg);
                             subEmitter.emitStoreToStack(reg);
                         }
@@ -213,7 +213,7 @@ public class GraphColorRegAlloc extends RegAlloc {
 
                 if (loc.instr.equals(HoleInstr.CallerRestore)) {
                     for (var reg : callerNeedSave) {
-                        System.err.printf("restore %s %s\n", reg, reg.temp);
+//                        System.err.printf("restore %s %s\n", reg, reg.temp);
                         subEmitter.emitLoadFromStack(reg, reg.temp);
                     }
                     callerNeedSave.clear();
