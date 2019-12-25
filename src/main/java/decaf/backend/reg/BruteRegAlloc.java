@@ -90,7 +90,7 @@ public final class BruteRegAlloc extends RegAlloc {
             if (loc.instr instanceof HoleInstr) {
                 if (loc.instr.equals(HoleInstr.CallerSave)) {
                     for (var reg : emitter.callerSaveRegs) {
-                        if (reg.occupied && loc.liveOut.contains(reg.temp)) {
+                        if (reg.occupied && loc.dataFlow.live.out.contains(reg.temp)) {
                             callerNeedSave.add(reg);
                             subEmitter.emitStoreToStack(reg);
                         }
@@ -114,7 +114,7 @@ public final class BruteRegAlloc extends RegAlloc {
 
         // Before we leave a basic block, we must copy values of all live variables from registers (if exist)
         // to stack, as all these registers will be reset (as unoccupied) when entering another basic block.
-        for (var temp : bb.liveOut) {
+        for (var temp : bb.dataFlow.live.out) {
             if (bindings.containsKey(temp)) {
                 subEmitter.emitStoreToStack(bindings.get(temp));
             }
@@ -136,7 +136,7 @@ public final class BruteRegAlloc extends RegAlloc {
             if (temp instanceof Reg) {
                 srcRegs[i] = (Reg) temp;
             } else {
-                srcRegs[i] = allocRegFor(temp, true, loc.liveIn, subEmitter);
+                srcRegs[i] = allocRegFor(temp, true, loc.dataFlow.live.in, subEmitter);
             }
         }
 
@@ -145,7 +145,7 @@ public final class BruteRegAlloc extends RegAlloc {
             if (temp instanceof Reg) {
                 dstRegs[i] = ((Reg) temp);
             } else {
-                dstRegs[i] = allocRegFor(temp, false, loc.liveIn, subEmitter);
+                dstRegs[i] = allocRegFor(temp, false, loc.dataFlow.live.in, subEmitter);
             }
         }
 

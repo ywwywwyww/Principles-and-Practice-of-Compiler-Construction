@@ -17,26 +17,26 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
 
         for (var bb : graph.nodes) {
             analyzeFor(bb);
-            bb.copyIn = new TreeMap<>();
+            bb.dataFlow.copy.in = new TreeMap<>();
             if (bb.id != 0) {
                 for (int i = 0; i < graph.tempUsed; i++) {
-                    bb.copyIn.put(new Temp(i), new Temp(-1));
+                    bb.dataFlow.copy.in.put(new Temp(i), new Temp(-1));
                 }
             }
-            bb.copyOut = new TreeMap<>(bb.copyIn);
-            for (var key : bb.copyKill) {
-                bb.copyOut.remove(key);
+            bb.dataFlow.copy.out = new TreeMap<>(bb.dataFlow.copy.in);
+            for (var key : bb.dataFlow.copy.kill) {
+                bb.dataFlow.copy.out.remove(key);
             }
-            for (var key : new TreeSet<>(bb.copyOut.keySet())) {
-                if (bb.copyKill.contains(bb.copyOut.get(key))) {
-                    bb.copyOut.remove(key);
+            for (var key : new TreeSet<>(bb.dataFlow.copy.out.keySet())) {
+                if (bb.dataFlow.copy.kill.contains(bb.dataFlow.copy.out.get(key))) {
+                    bb.dataFlow.copy.out.remove(key);
                 }
             }
-            bb.copyOut.putAll(bb.copyGen);
-//            System.err.printf("%d.copyGen: %s\n", bb.id, bb.copyGen);
-//            System.err.printf("%d.copyKill: %s\n", bb.id, bb.copyKill);
-//            System.err.printf("%d.copyIn: %s\n", bb.id, bb.copyIn);
-//            System.err.printf("%d.copyOut: %s\n", bb.id, bb.copyOut);
+            bb.dataFlow.copy.out.putAll(bb.dataFlow.copy.gen);
+//            System.err.printf("%d.copy.gen: %s\n", bb.id, bb.copy.gen);
+//            System.err.printf("%d.copy.kill: %s\n", bb.id, bb.copy.kill);
+//            System.err.printf("%d.copy.in: %s\n", bb.id, bb.copy.in);
+//            System.err.printf("%d.copy.out: %s\n", bb.id, bb.copy.out);
         }
 
         boolean changed = true;
@@ -46,39 +46,39 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
             for (var bb : graph.nodes) {
                 if (bb.id != 0) {
                     for (var last : graph.getPrev(bb.id)) {
-                        for (var key : new TreeSet<>(bb.copyIn.keySet())) {
+                        for (var key : new TreeSet<>(bb.dataFlow.copy.in.keySet())) {
 //                            if (key.index == 2) {
-//                                System.err.printf("%s %s %s\n", bb.copyIn.get(key), graph.getBlock(last).copyOut.get(key),
-//                                        bb.copyIn.get(key).equals(graph.getBlock(last).copyOut.get(key)));
+//                                System.err.printf("%s %s %s\n", bb.copy.in.get(key), graph.getBlock(last).copy.out.get(key),
+//                                        bb.copy.in.get(key).equals(graph.getBlock(last).copy.out.get(key)));
 //                            }
-                            if (graph.getBlock(last).copyOut.containsKey(key) && bb.copyIn.get(key).index == -1) {
-                                bb.copyIn.put(key, graph.getBlock(last).copyOut.get(key));
+                            if (graph.getBlock(last).dataFlow.copy.out.containsKey(key) && bb.dataFlow.copy.in.get(key).index == -1) {
+                                bb.dataFlow.copy.in.put(key, graph.getBlock(last).dataFlow.copy.out.get(key));
 //                                System.err.printf("hahaha1 %s\n", key);
-                            } else if (!graph.getBlock(last).copyOut.containsKey(key) ||
-                                    (graph.getBlock(last).copyOut.get(key).index != -1 &&
-                                    !graph.getBlock(last).copyOut.get(key).equals(bb.copyIn.get(key)))) {
-                                bb.copyIn.remove(key);
+                            } else if (!graph.getBlock(last).dataFlow.copy.out.containsKey(key) ||
+                                    (graph.getBlock(last).dataFlow.copy.out.get(key).index != -1 &&
+                                    !graph.getBlock(last).dataFlow.copy.out.get(key).equals(bb.dataFlow.copy.in.get(key)))) {
+                                bb.dataFlow.copy.in.remove(key);
 //                                System.err.printf("hahaha2 %s\n", key);
                             }
                         }
                     }
                 }
-                Map<Temp, Temp> temp = new TreeMap<>(bb.copyIn);
-                for (var key : bb.copyKill) {
+                Map<Temp, Temp> temp = new TreeMap<>(bb.dataFlow.copy.in);
+                for (var key : bb.dataFlow.copy.kill) {
                     temp.remove(key);
                 }
                 for (var key : new TreeSet<>(temp.keySet())) {
-                    if (bb.copyKill.contains(temp.get(key))) {
+                    if (bb.dataFlow.copy.kill.contains(temp.get(key))) {
                         temp.remove(key);
                     }
                 }
-                temp.putAll(bb.copyGen);
-                if (!temp.equals(bb.copyOut)) {
-                    bb.copyOut = temp;
+                temp.putAll(bb.dataFlow.copy.gen);
+                if (!temp.equals(bb.dataFlow.copy.out)) {
+                    bb.dataFlow.copy.out = temp;
                     changed = true;
                 }
-//                System.err.printf("%d.copyIn: %s\n", bb.id, bb.copyIn);
-//                System.err.printf("%d.copyOut: %s\n", bb.id, bb.copyOut);
+//                System.err.printf("%d.copy.in: %s\n", bb.id, bb.copy.in);
+//                System.err.printf("%d.copy.out: %s\n", bb.id, bb.copy.out);
             }
         }
 
@@ -91,23 +91,23 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
     }
 
     void analyzeFor(BasicBlock<TacInstr> bb) {
-        bb.copyKill = new TreeSet<>();
-        bb.copyGen = new TreeMap<>();
+        bb.dataFlow.copy.kill = new TreeSet<>();
+        bb.dataFlow.copy.gen = new TreeMap<>();
         var it = bb.backwardIterator();
         while (it.hasNext()) {
             var loc = it.next();
             if (loc.instr instanceof TacInstr.Assign) {
-                if (!bb.copyKill.contains(((TacInstr.Assign) loc.instr).dst) &&
-                        !bb.copyKill.contains(((TacInstr.Assign) loc.instr).src)) {
-                    bb.copyGen.put(((TacInstr.Assign) loc.instr).dst, ((TacInstr.Assign) loc.instr).src);
+                if (!bb.dataFlow.copy.kill.contains(((TacInstr.Assign) loc.instr).dst) &&
+                        !bb.dataFlow.copy.kill.contains(((TacInstr.Assign) loc.instr).src)) {
+                    bb.dataFlow.copy.gen.put(((TacInstr.Assign) loc.instr).dst, ((TacInstr.Assign) loc.instr).src);
                 }
             }
-            bb.copyKill.addAll(loc.instr.getWritten());
+            bb.dataFlow.copy.kill.addAll(loc.instr.getWritten());
         }
     }
 
     boolean optimizeFor(BasicBlock<TacInstr> bb) {
-        Map<Temp, Temp> copy = new TreeMap<>(bb.copyIn);
+        Map<Temp, Temp> copy = new TreeMap<>(bb.dataFlow.copy.in);
         for (var key : new TreeSet<>(copy.keySet())) {
             if (copy.get(key).index == -1) {
                 copy.remove(key);
@@ -118,7 +118,7 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
         var it = bb.forwardIterator();
         while (it.hasNext()) {
             var loc = it.next();
-            loc.copyIn = new TreeMap<>(copy);
+            loc.dataFlow.copy.in = new TreeMap<>(copy);
             cp.resInstr = null;
             loc.instr.accept(cp);
             loc.instr = cp.resInstr;
@@ -133,7 +133,7 @@ public class CopyPropagator implements CFGOptimizer<TacInstr> {
 //                System.err.println(loc.instr);
                 }
             }
-            loc.copyOut = new TreeMap<>(copy);
+            loc.dataFlow.copy.out = new TreeMap<>(copy);
         }
         return cp.changed;
     }

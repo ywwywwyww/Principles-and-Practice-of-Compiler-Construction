@@ -81,10 +81,10 @@ public class GraphColorRegAlloc extends RegAlloc {
         // build interference graph
         interferenceGraph = new InterferenceGraph(numGlobalTemps);
         for (var bb : graph) {
-            for (var temp1 : bb.liveIn) {
+            for (var temp1 : bb.dataFlow.live.in) {
                 if (!(temp1 instanceof Reg)) {
                     int id1 = node.get(temp1);
-                    for (var temp2 : bb.liveIn) {
+                    for (var temp2 : bb.dataFlow.live.in) {
                         if (!(temp2 instanceof Reg)) {
 //                                System.err.printf("%s %s %s\n", bb.id, temp1, temp2);
                             int id2 = node.get(temp2);
@@ -96,10 +96,10 @@ public class GraphColorRegAlloc extends RegAlloc {
                 }
             }
             for (var loc : bb) {
-                for (var temp1 : loc.liveOut) {
+                for (var temp1 : loc.dataFlow.live.out) {
                     if (!(temp1 instanceof Reg)) {
                         int id1 = node.get(temp1);
-                        for (var temp2 : loc.liveOut) {
+                        for (var temp2 : loc.dataFlow.live.out) {
                             if (!(temp2 instanceof Reg)) {
 //                                System.err.printf("%s %s %s\n", bb.id, temp1, temp2);
                                 int id2 = node.get(temp2);

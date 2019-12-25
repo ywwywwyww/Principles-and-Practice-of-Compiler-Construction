@@ -1,9 +1,8 @@
 package decaf.backend.dataflow;
 
+import decaf.backend.dataflow.flow.DataFlow;
 import decaf.lowlevel.instr.PseudoInstr;
-import decaf.lowlevel.instr.Temp;
 import decaf.lowlevel.label.Label;
-import decaf.lowlevel.tac.TacInstr;
 
 import java.util.*;
 
@@ -118,23 +117,5 @@ public class BasicBlock<I extends PseudoInstr> implements Iterable<Loc<I>> {
     }
 
     // For data flow analysis
-    public Set<Temp> def;
-
-    public Set<Temp> liveUse;
-
-    public Set<Temp> liveIn;
-
-    public Set<Temp> liveOut;
-
-    public Map<Temp, Constant> valIn;
-
-    public Map<Temp, Constant> valOut;
-
-    public Map<Temp, Temp> copyIn;
-
-    public Map<Temp, Temp> copyOut;
-
-    public Map<Temp, Temp> copyGen;
-
-    public Set<Temp> copyKill;
+    public DataFlow dataFlow = new DataFlow();
 }
