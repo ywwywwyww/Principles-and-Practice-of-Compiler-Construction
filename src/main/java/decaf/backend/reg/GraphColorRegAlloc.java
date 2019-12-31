@@ -51,8 +51,11 @@ public class GraphColorRegAlloc extends RegAlloc {
         }
     }
 
+    CFG<PseudoInstr> graph;
+
     @Override
     public void accept(CFG<PseudoInstr> graph, SubroutineInfo info) {
+        this.graph = graph;
         // analyze (maybe already analyzed)
         (new LivenessAnalyzer<>()).accept(graph);
 //        System.err.printf("\n\n\n%s\n", info.funcLabel);
@@ -79,24 +82,28 @@ public class GraphColorRegAlloc extends RegAlloc {
 //        System.err.println(node);
 
         // build interference graph
+//        System.err.printf("%s\n", graph.getBlock(0).dataFlow.live.in);
         interferenceGraph = new InterferenceGraph(numGlobalTemps);
-        for (var bb : graph) {
-            for (var temp1 : bb.dataFlow.live.in) {
-                if (!(temp1 instanceof Reg)) {
-                    int id1 = node.get(temp1);
-                    for (var temp2 : bb.dataFlow.live.in) {
-                        if (!(temp2 instanceof Reg)) {
-//                                System.err.printf("%s %s %s\n", bb.id, temp1, temp2);
-                            int id2 = node.get(temp2);
-                            if (id1 != id2) {
-                                interferenceGraph.addEdge(id1, id2);
-                            }
-                        }
+        for (var i1 = 0; i1 < info.numArg; i1++) {
+            int id1 = node.get(new Temp(i1));
+            for (var i2 = 0; i2 < info.numArg; i2++) {
+                int id2 = node.get(new Temp(i2));
+                if (id1 != id2) {
+                    interferenceGraph.addEdge(id1, id2);
+                }
+            }
+            for (var temp2 : graph.getBlock(0).dataFlow.live.in) {
+                if (!(temp2 instanceof Reg)) {
+                    int id2 = node.get(temp2);
+                    if (id1 != id2) {
+                        interferenceGraph.addEdge(id1, id2);
                     }
                 }
             }
+        }
+        for (var bb : graph) {
             for (var loc : bb) {
-                for (var temp1 : loc.dataFlow.live.out) {
+                for (var temp1 : loc.instr.getWritten()) {
                     if (!(temp1 instanceof Reg)) {
                         int id1 = node.get(temp1);
                         for (var temp2 : loc.dataFlow.live.out) {
@@ -112,6 +119,45 @@ public class GraphColorRegAlloc extends RegAlloc {
                 }
             }
         }
+//        System.err.printf("%s\n", interferenceGraph.edges);
+
+//
+//        for (var bb : graph) {
+//            for (var loc : bb) {
+//                for (var temp1 : loc.dataFlow.live.out) {
+//                    if (!(temp1 instanceof Reg)) {
+//                        int id1 = node.get(temp1);
+//                        for (var temp2 : loc.dataFlow.live.out) {
+//                            if (!(temp2 instanceof Reg)) {
+////                                System.err.printf("%s %s %s\n", bb.id, temp1, temp2);
+//                                int id2 = node.get(temp2);
+//                                if (id1 != id2) {
+//                                    if (!interferenceGraph.edges.get(id1).contains(id2)) {
+//                                        System.err.printf("%s %s\n", id1, id2);
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                for (var temp1 : loc.dataFlow.live.in) {
+//                    if (!(temp1 instanceof Reg)) {
+//                        int id1 = node.get(temp1);
+//                        for (var temp2 : loc.dataFlow.live.in) {
+//                            if (!(temp2 instanceof Reg)) {
+////                                System.err.printf("%s %s %s\n", bb.id, temp1, temp2);
+//                                int id2 = node.get(temp2);
+//                                if (id1 != id2) {
+//                                    if (!interferenceGraph.edges.get(id1).contains(id2)) {
+//                                        System.err.printf("%s %s\n", id1, id2);
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
         // graph coloring
         int numAllocableRegs = emitter.allocatableRegs.length;
@@ -161,8 +207,8 @@ public class GraphColorRegAlloc extends RegAlloc {
                 System.err.printf("ERROR: spilled temp %s\n", temp);
             } else {
 //                System.err.printf("%s %s\n", temp, candidate);
-                int color = new ArrayList<>(candidate).get(random.nextInt(candidate.size()));
-//                int color = new ArrayList<>(candidate).get(0);
+//                int color = new ArrayList<>(candidate).get(random.nextInt(candidate.size()));
+                int color = new ArrayList<>(candidate).get(0);
                 interferenceGraph.setColor(temp, color);
             }
         }
