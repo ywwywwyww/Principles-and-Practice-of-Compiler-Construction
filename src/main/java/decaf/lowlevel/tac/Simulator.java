@@ -118,14 +118,14 @@ public final class Simulator {
             }
 
             if (_halt) {
-                System.err.print("Total instruction num : " + count + "\n");
+//                System.err.print("Total instruction num : " + count + "\n");
                 return;
             }
 
             _instrs.get(_pc).accept(executor);
             count++;
         }
-        System.err.print("Total instruction num : " + count + "\n");
+//        System.err.print("Total instruction num : " + count + "\n");
     }
 
     /**

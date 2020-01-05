@@ -185,6 +185,7 @@ public final class BruteRegAlloc extends RegAlloc {
         // Last attempt: all registers are occupied, so we have to spill one of them.
         // To avoid the situation where the first register is consecutively spilled, a reasonable heuristic
         // is to randomize our choice among all of them.
+        System.err.printf("111111111111111111\n");
         var reg = emitter.allocatableRegs[random.nextInt(emitter.allocatableRegs.length)];
         subEmitter.emitStoreToStack(reg);
         unbind(reg.temp);
